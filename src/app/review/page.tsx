@@ -6,27 +6,18 @@ import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { VocabularyWord, SpacedRepetitionRating } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal"
+import { PriorityModeSelector } from "@/components/PriorityModeSelector"
+import { SessionStats } from "@/components/SessionStats"
+import { ReviewSession } from "@/components/ReviewSession"
+import { BrowseVocabulary } from "@/components/BrowseVocabulary"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  getRatingDescription,
-  getRatingButtonStyle,
-  formatInterval,
-  getEaseDifficulty,
-  getEaseStars,
-} from "@/lib/spaced-repetition"
-import {
-  RotateCcw,
-  CheckCircle,
-  AlertCircle,
-  Clock,
-  BookOpen,
   Play,
+  RotateCcw,
+  BookOpen,
+  AlertCircle,
+  CheckCircle,
+  Clock,
 } from "lucide-react"
 
 interface ReviewStats {
@@ -61,6 +52,9 @@ export default function ReviewPage() {
   const [selectedPriorityMode, setSelectedPriorityMode] = useState<
     "difficulty" | "time"
   >("difficulty")
+  const [deletingWordId, setDeletingWordId] = useState<string | null>(null)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [wordToDelete, setWordToDelete] = useState<VocabularyWord | null>(null)
 
   const { user } = useAuth()
 
@@ -257,6 +251,45 @@ export default function ReviewPage() {
     // The useEffect will automatically refetch words when selectedPriorityMode changes
   }
 
+  const openDeleteModal = (word: VocabularyWord) => {
+    setWordToDelete(word)
+    setDeleteModalOpen(true)
+  }
+
+  const closeDeleteModal = () => {
+    setDeleteModalOpen(false)
+    setWordToDelete(null)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!wordToDelete || deletingWordId) return
+
+    setDeletingWordId(wordToDelete.id)
+    try {
+      const response = await fetch(`/api/vocabulary?id=${wordToDelete.id}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || "Failed to delete word")
+      }
+
+      // Remove the word from the local state
+      setAllWords((prev) => prev.filter((word) => word.id !== wordToDelete.id))
+
+      // Clear any errors
+      setError("")
+
+      // Close modal
+      closeDeleteModal()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to delete word")
+    } finally {
+      setDeletingWordId(null)
+    }
+  }
+
   if (loading) {
     return (
       <ProtectedRoute>
@@ -330,123 +363,19 @@ export default function ReviewPage() {
               </CardTitle>
 
               {/* Priority Mode Toggle */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Mode:</span>
-                <Select
-                  value={selectedPriorityMode}
-                  onValueChange={handlePriorityModeChange}
-                  disabled={reviewStarted}
-                >
-                  <SelectTrigger className="w-[140px] h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="difficulty">
-                      🎯 Smart Priority
-                    </SelectItem>
-                    <SelectItem value="time">⏰ Time-based</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <PriorityModeSelector
+                selectedMode={selectedPriorityMode}
+                onModeChange={handlePriorityModeChange}
+                disabled={reviewStarted}
+              />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold text-primary">
-                  {reviewStats.total}
-                </div>
-                <div className="text-sm text-muted-foreground">Total</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-green-600">
-                  {reviewStats.completed}
-                </div>
-                <div className="text-sm text-muted-foreground">Completed</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-orange-600">
-                  {reviewStats.remaining}
-                </div>
-                <div className="text-sm text-muted-foreground">Remaining</div>
-              </div>
-            </div>
-            {reviewStats.total > 0 && (
-              <div className="mt-4">
-                <div className="w-full bg-secondary rounded-full h-2">
-                  <div
-                    className="bg-primary h-2 rounded-full transition-all duration-300"
-                    style={{
-                      width: `${
-                        (reviewStats.completed / reviewStats.total) * 100
-                      }%`,
-                    }}
-                  ></div>
-                </div>
-              </div>
-            )}
-
-            {/* Priority Mode Explanation */}
-            {priorityStats && (
-              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/50 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="text-sm">
-                  <div className="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                    {priorityStats.priorityMode === "difficulty"
-                      ? "🎯 Smart Priority Active"
-                      : "⏰ Time-based Selection"}
-                  </div>
-                  <div className="text-blue-700 dark:text-blue-300">
-                    {priorityStats.priorityMode === "difficulty" ? (
-                      <>
-                        Showing your most challenging words first.
-                        {priorityStats.totalDue > reviewStats.total && (
-                          <span>
-                            {" "}
-                            Selected {reviewStats.total} most important out of{" "}
-                            {priorityStats.totalDue} due words.
-                          </span>
-                        )}
-                        {priorityStats.priorityRange && (
-                          <span className="block mt-1 text-xs">
-                            Difficulty scores:{" "}
-                            {Math.round(priorityStats.priorityRange.lowest)} -{" "}
-                            {Math.round(priorityStats.priorityRange.highest)}{" "}
-                            points
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      "Showing words in order of when they became due (oldest first)."
-                    )}
-                  </div>
-
-                  {/* Simple explanation of the difference */}
-                  <details className="mt-2">
-                    <summary className="text-xs text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
-                      What&apos;s the difference between priority modes?
-                    </summary>
-                    <div className="mt-2 text-xs text-blue-600 dark:text-blue-400 space-y-1">
-                      <div>
-                        <strong>🎯 Smart Priority:</strong> Reviews your hardest
-                        words first (words you fail, struggle with, or
-                        haven&apos;t seen in a while)
-                      </div>
-                      <div>
-                        <strong>⏰ Time-based:</strong> Reviews words in order
-                        of when they became due (oldest due words first)
-                      </div>
-                      <div className="text-blue-500 dark:text-blue-500 pt-1">
-                        <em>
-                          {selectedPriorityMode === "difficulty"
-                            ? "Smart Priority helps you focus on what you need to learn most!"
-                            : "Time-based ensures you review words as they become due."}
-                        </em>
-                      </div>
-                    </div>
-                  </details>
-                </div>
-              </div>
-            )}
+            <SessionStats
+              reviewStats={reviewStats}
+              priorityStats={priorityStats}
+              selectedPriorityMode={selectedPriorityMode}
+            />
           </CardContent>
         </Card>
 
@@ -458,123 +387,12 @@ export default function ReviewPage() {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
                 <p className="text-muted-foreground">Loading vocabulary...</p>
               </div>
-            ) : allWords.length > 0 ? (
-              <div className="space-y-4">
-                <div className="text-center mb-4">
-                  <p className="text-muted-foreground">
-                    You have {allWords.length} saved vocabulary words
-                  </p>
-                </div>
-                <div className="grid gap-4">
-                  {allWords.map((word) => (
-                    <Card key={word.id} className="border-l-4 border-l-primary">
-                      <CardHeader className="pb-3">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="text-2xl font-bold text-foreground mb-1">
-                              {word.word}
-                            </div>
-                            {word.word_romanization && (
-                              <div className="text-sm text-muted-foreground italic mb-2">
-                                {word.word_romanization}
-                              </div>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <span
-                              className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                word.status === "new"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : word.status === "learning"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-green-100 text-green-800"
-                              }`}
-                            >
-                              {word.status}
-                            </span>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          <div>
-                            <span className="font-medium text-foreground">
-                              Translation:
-                            </span>
-                            <div className="text-muted-foreground mt-1">
-                              {word.translation}
-                            </div>
-                          </div>
-
-                          <div>
-                            <span className="font-medium text-foreground">
-                              Example:
-                            </span>
-                            <div className="mt-1 space-y-1">
-                              <div className="text-foreground">
-                                {word.sentence}
-                              </div>
-                              {word.sentence_romanization && (
-                                <div className="text-sm text-muted-foreground italic">
-                                  {word.sentence_romanization}
-                                </div>
-                              )}
-                              {word.sentence_translation && (
-                                <div className="text-sm text-muted-foreground">
-                                  {word.sentence_translation}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="text-xs text-muted-foreground pt-2 border-t">
-                            <div className="flex justify-between items-center">
-                              <span>Repetitions: {word.repetitions}</span>
-                              <div className="flex items-center gap-1">
-                                <span>Difficulty:</span>
-                                <span
-                                  className={`font-medium ${
-                                    getEaseDifficulty(word.ease_factor || 2.5)
-                                      .color
-                                  }`}
-                                >
-                                  {
-                                    getEaseDifficulty(word.ease_factor || 2.5)
-                                      .label
-                                  }
-                                </span>
-                                <span className="text-yellow-500 text-sm">
-                                  {getEaseStars(word.ease_factor || 2.5)}
-                                </span>
-                              </div>
-                              <span>
-                                Next: {formatInterval(word.interval || 1)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
             ) : (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-center py-8">
-                    <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-foreground mb-2">
-                      No Vocabulary Yet
-                    </h3>
-                    <p className="text-muted-foreground mb-4">
-                      You haven&apos;t saved any vocabulary words yet.
-                    </p>
-                    <a href="/topic" className="text-primary hover:underline">
-                      Generate your first vocabulary words
-                    </a>
-                  </div>
-                </CardContent>
-              </Card>
+              <BrowseVocabulary
+                words={allWords}
+                onDeleteWord={openDeleteModal}
+                deletingWordId={deletingWordId}
+              />
             )}
           </div>
         ) : sessionComplete ? (
@@ -672,155 +490,43 @@ export default function ReviewPage() {
         !sessionComplete &&
         dueWords.length > 0 &&
         reviewStarted ? (
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg">
-                  Word {currentWordIndex + 1} of {dueWords.length}
-                </CardTitle>
-                <Button
-                  onClick={quitSession}
-                  variant="outline"
-                  size="sm"
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  Quit Session
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Question */}
-                <div className="text-center">
-                  <div className="text-4xl font-bold text-foreground mb-2">
-                    {dueWords[currentWordIndex].word}
-                  </div>
-                  {dueWords[currentWordIndex].word_romanization && (
-                    <div className="text-lg text-muted-foreground italic mb-4">
-                      {dueWords[currentWordIndex].word_romanization}
-                    </div>
-                  )}
-
-                  {!showAnswer ? (
-                    <Button
-                      onClick={() => setShowAnswer(true)}
-                      variant="outline"
-                      className="mt-4"
-                    >
-                      Show Answer
-                    </Button>
-                  ) : (
-                    // Answer and Rating
-                    <div className="space-y-6">
-                      <div className="p-4 bg-muted/50 rounded-lg">
-                        <div className="text-lg font-medium text-foreground mb-2">
-                          {dueWords[currentWordIndex].translation}
-                        </div>
-
-                        <div className="space-y-2 text-sm">
-                          <div>
-                            <span className="font-medium">Example:</span>
-                            <div className="mt-1">
-                              <div className="text-foreground">
-                                {dueWords[currentWordIndex].sentence}
-                              </div>
-                              {dueWords[currentWordIndex]
-                                .sentence_romanization && (
-                                <div className="text-muted-foreground italic">
-                                  {
-                                    dueWords[currentWordIndex]
-                                      .sentence_romanization
-                                  }
-                                </div>
-                              )}
-                              {dueWords[currentWordIndex]
-                                .sentence_translation && (
-                                <div className="text-muted-foreground">
-                                  {
-                                    dueWords[currentWordIndex]
-                                      .sentence_translation
-                                  }
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Rating Buttons */}
-                      <div className="space-y-4">
-                        <h4 className="text-lg font-medium text-center">
-                          How well did you remember this?
-                        </h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                          {([0, 1, 2, 3, 4, 5] as SpacedRepetitionRating[]).map(
-                            (rating) => (
-                              <Button
-                                key={rating}
-                                onClick={() => handleRating(rating)}
-                                disabled={submittingRating}
-                                className={`${getRatingButtonStyle(
-                                  rating
-                                )} flex flex-col py-3 h-auto`}
-                              >
-                                <div className="font-bold text-lg">
-                                  {rating}
-                                </div>
-                                <div className="text-xs opacity-90">
-                                  {getRatingDescription(rating)}
-                                </div>
-                              </Button>
-                            )
-                          )}
-                        </div>
-
-                        {/* Show current SM-2 stats */}
-                        <div className="text-xs text-muted-foreground text-center">
-                          <div className="flex justify-center items-center gap-4">
-                            <span>
-                              Repetitions:{" "}
-                              {dueWords[currentWordIndex].repetitions}
-                            </span>
-                            <div className="flex items-center gap-1">
-                              <span>Difficulty:</span>
-                              <span
-                                className={`font-medium ${
-                                  getEaseDifficulty(
-                                    dueWords[currentWordIndex].ease_factor ||
-                                      2.5
-                                  ).color
-                                }`}
-                              >
-                                {
-                                  getEaseDifficulty(
-                                    dueWords[currentWordIndex].ease_factor ||
-                                      2.5
-                                  ).label
-                                }
-                              </span>
-                              <span className="text-yellow-500 text-sm">
-                                {getEaseStars(
-                                  dueWords[currentWordIndex].ease_factor || 2.5
-                                )}
-                              </span>
-                            </div>
-                            <span>
-                              Next:{" "}
-                              {formatInterval(
-                                dueWords[currentWordIndex].interval || 1
-                              )}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg">
+                    Word {currentWordIndex + 1} of {dueWords.length}
+                  </CardTitle>
+                  <Button
+                    onClick={quitSession}
+                    variant="outline"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    Quit Session
+                  </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardHeader>
+            </Card>
+            <ReviewSession
+              currentWord={dueWords[currentWordIndex]}
+              showAnswer={showAnswer}
+              onShowAnswer={() => setShowAnswer(true)}
+              onRating={handleRating}
+              submittingRating={submittingRating}
+            />
+          </div>
         ) : null}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        word={wordToDelete}
+        onConfirmDelete={handleConfirmDelete}
+        isDeleting={deletingWordId === wordToDelete?.id}
+      />
     </ProtectedRoute>
   )
 }
