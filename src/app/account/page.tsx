@@ -3,10 +3,15 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { ProtectedRoute } from "@/components/shared/ProtectedRoute"
-
+import {
+  ProfileInfo,
+  LearningStats,
+  GenerationUsage,
+  TranslationUsage,
+  FeatureList,
+  AccountActions,
+} from "@/components/account"
 import { VocabularyWord } from "@/types/database"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface GenerationStats {
   dailyUsed: number
@@ -112,252 +117,12 @@ export default function AccountPage() {
           </p>
         </div>
 
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Email
-                </p>
-                <p className="text-foreground">{user?.email}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Member since
-                </p>
-                <p className="text-foreground">
-                  {user?.created_at
-                    ? new Date(user.created_at).toLocaleDateString()
-                    : "N/A"}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Learning Statistics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-foreground">
-                  {stats.total}
-                </div>
-                <div className="text-sm text-muted-foreground">Total Words</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">
-                  {stats.new}
-                </div>
-                <div className="text-sm text-muted-foreground">New</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-yellow-600">
-                  {stats.learning}
-                </div>
-                <div className="text-sm text-muted-foreground">Learning</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {stats.mastered}
-                </div>
-                <div className="text-sm text-muted-foreground">Mastered</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Generation Usage</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    Daily Generation Limit
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {generationStats.dailyUsed} / {generationStats.dailyLimit}{" "}
-                    generations used today
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-primary">
-                    {generationStats.remaining}
-                  </div>
-                  <div className="text-sm text-muted-foreground">remaining</div>
-                </div>
-              </div>
-              <div className="w-full bg-muted rounded-full h-2">
-                <div
-                  className="bg-primary h-2 rounded-full transition-all duration-300"
-                  style={{
-                    width: `${
-                      (generationStats.dailyUsed / generationStats.dailyLimit) *
-                      100
-                    }%`,
-                  }}
-                ></div>
-              </div>
-              <div className="flex justify-between items-center text-sm text-muted-foreground">
-                <span>Resets at {generationStats.resetTime}</span>
-                <span>
-                  {generationStats.dailyUsed >= generationStats.dailyLimit ? (
-                    <span className="text-orange-600 font-medium">
-                      Limit reached
-                    </span>
-                  ) : (
-                    <span className="text-green-600 font-medium">
-                      {generationStats.remaining} left
-                    </span>
-                  )}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Features</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg
-                    className="w-3 h-3 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-medium text-foreground">
-                    AI-Generated Vocabulary
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Generate Thai vocabulary words with English translations
-                    based on any topic you choose
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg
-                    className="w-3 h-3 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-medium text-foreground">
-                    Thai-English Translation
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Bidirectional translation with romanization support for Thai
-                    text
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg
-                    className="w-3 h-3 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-medium text-foreground">
-                    Spaced Repetition
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Review your saved vocabulary with an intelligent spaced
-                    repetition system
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg
-                    className="w-3 h-3 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-medium text-foreground">
-                    Romanization Support
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    All Thai words include romanization using the Royal Thai
-                    General System of Transcription
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium text-foreground">Sign Out</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Sign out of your account
-                  </p>
-                </div>
-                <Button onClick={handleSignOut} variant="destructive">
-                  Sign Out
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <ProfileInfo user={user} />
+        <LearningStats stats={stats} />
+        <GenerationUsage generationStats={generationStats} />
+        <TranslationUsage />
+        <FeatureList />
+        <AccountActions onSignOut={handleSignOut} />
       </div>
     </ProtectedRoute>
   )

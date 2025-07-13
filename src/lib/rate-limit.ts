@@ -47,7 +47,7 @@ export const vocabGenerationLimiter = redis
 export const translationLimiter = redis
   ? new Ratelimit({
       redis,
-      limiter: Ratelimit.slidingWindow(30, "1 h"),
+      limiter: Ratelimit.slidingWindow(10, "1 d"),
       analytics: true,
       prefix: "@learnthai/ratelimit/translate",
     })
