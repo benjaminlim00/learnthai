@@ -15,6 +15,7 @@ import {
   CreateVocabularyInput,
   UpdateVocabularyInput,
 } from "@/lib/validation"
+import { getDefaultSM2Values } from "@/lib/spaced-repetition"
 import { User } from "@supabase/supabase-js"
 
 // POST - Create vocabulary word
@@ -27,6 +28,9 @@ export const POST = withAuthAndValidation(
     try {
       const supabase = await createServerSupabaseClient(request)
 
+      // Get default SM-2 values for new vocabulary
+      const sm2Defaults = getDefaultSM2Values()
+
       const { data, error } = await supabase
         .from("vocabulary")
         .insert({
@@ -38,6 +42,11 @@ export const POST = withAuthAndValidation(
           sentence_romanization: validatedData.sentence_romanization,
           sentence_translation: validatedData.sentence_translation,
           status: "new",
+          // Add SM-2 default values
+          interval: sm2Defaults.interval,
+          ease_factor: sm2Defaults.easeFactor,
+          repetitions: sm2Defaults.repetitions,
+          next_review: sm2Defaults.nextReview,
         })
         .select()
         .single()

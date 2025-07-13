@@ -48,12 +48,33 @@ export const updateVocabularySchema = z.object({
 
 export type UpdateVocabularyInput = z.infer<typeof updateVocabularySchema>
 
+// Spaced repetition rating validation (0-5 scale)
+export const spacedRepetitionRatingSchema = z.object({
+  id: z.string().uuid("Invalid vocabulary ID format"),
+  rating: z
+    .number()
+    .int()
+    .min(0, "Rating must be at least 0")
+    .max(5, "Rating must be at most 5"),
+})
+
+export type SpacedRepetitionRatingInput = z.infer<
+  typeof spacedRepetitionRatingSchema
+>
+
 // Vocabulary query validation (userId removed - comes from auth)
 export const getVocabularySchema = z.object({
   status: z.enum(["new", "learning", "mastered"]).optional(),
 })
 
 export type GetVocabularyInput = z.infer<typeof getVocabularySchema>
+
+// Get due vocabulary cards validation
+export const getDueVocabularySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).optional().default(20),
+})
+
+export type GetDueVocabularyInput = z.infer<typeof getDueVocabularySchema>
 
 // Delete vocabulary validation
 export const deleteVocabularySchema = z.object({
