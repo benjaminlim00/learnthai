@@ -143,3 +143,147 @@ export function formatInterval(interval: number): string {
     return years === 1 ? "1 year" : `${years} years`
   }
 }
+
+/**
+ * Convert ease factor to user-friendly difficulty level
+ * @param easeFactor Ease factor (1.3 to ~3.0+)
+ * @returns Difficulty level object with label and color
+ */
+export function getEaseDifficulty(easeFactor: number): {
+  label: string
+  color: string
+  stars: number
+} {
+  if (easeFactor >= 2.8) {
+    return { label: "Very Easy", color: "text-green-600", stars: 5 }
+  } else if (easeFactor >= 2.4) {
+    return { label: "Easy", color: "text-green-500", stars: 4 }
+  } else if (easeFactor >= 2.0) {
+    return { label: "Medium", color: "text-yellow-500", stars: 3 }
+  } else if (easeFactor >= 1.6) {
+    return { label: "Hard", color: "text-orange-500", stars: 2 }
+  } else {
+    return { label: "Very Hard", color: "text-red-500", stars: 1 }
+  }
+}
+
+/**
+ * Generate star rating display for ease
+ * @param easeFactor Ease factor (1.3 to ~3.0+)
+ * @returns Star rating string
+ */
+export function getEaseStars(easeFactor: number): string {
+  const { stars } = getEaseDifficulty(easeFactor)
+  return "★".repeat(stars) + "☆".repeat(5 - stars)
+}
+
+/**
+ * Calculate priority score for vocabulary word selection
+ * Higher score = higher priority for review
+ * @param word Vocabulary word with SM-2 data
+ * @param currentTime Current timestamp for overdue calculation
+ * @returns Priority score (0-100)
+ */
+export function calculatePriorityScore(
+  word: {
+    ease_factor: number
+    repetitions: number
+    interval: number
+    next_review: string
+    status: "new" | "learning" | "mastered"
+    created_at: string
+  },
+  currentTime: Date = new Date()
+): number {
+  const nextReview = new Date(word.next_review)
+  const createdAt = new Date(word.created_at)
+  const daysSinceCreated = Math.max(
+    1,
+    Math.floor(
+      (currentTime.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+    )
+  )
+
+  let score = 0
+
+  // 1. Difficulty Factor (0-30 points) - Lower ease = higher priority
+  const difficultyScore = Math.max(0, 30 - (word.ease_factor - 1.3) * 20)
+  score += difficultyScore
+
+  // 2. Learning Efficiency (0-25 points) - Low repetitions relative to time = higher priority
+  const expectedRepetitions = Math.max(1, daysSinceCreated / 7) // Expect ~1 rep per week
+  const efficiencyScore = Math.max(
+    0,
+    25 - (word.repetitions / expectedRepetitions) * 25
+  )
+  score += efficiencyScore
+
+  // 3. Status Priority (0-20 points)
+  const statusScore = {
+    new: 20, // New words get highest priority
+    learning: 15, // Learning words get medium priority
+    mastered: 5, // Mastered words get lowest priority
+  }[word.status]
+  score += statusScore
+
+  // 4. Overdue Bonus (0-15 points) - More overdue = higher priority
+  if (nextReview <= currentTime) {
+    const hoursOverdue = Math.floor(
+      (currentTime.getTime() - nextReview.getTime()) / (1000 * 60 * 60)
+    )
+    const overdueScore = Math.min(15, (hoursOverdue / 24) * 5) // 5 points per day overdue, max 15
+    score += overdueScore
+  }
+
+  // 5. Interval Adjustment (0-10 points) - Shorter intervals = higher priority
+  const intervalScore = Math.max(0, 10 - Math.min(10, word.interval / 10))
+  score += intervalScore
+
+  return Math.min(100, Math.max(0, score))
+}
+
+/**
+ * Sort vocabulary words by priority score
+ * @param words Array of vocabulary words
+ * @param currentTime Current timestamp
+ * @returns Words sorted by priority (highest first)
+ */
+export function sortByPriority(
+  words: Array<{
+    ease_factor: number
+    repetitions: number
+    interval: number
+    next_review: string
+    status: "new" | "learning" | "mastered"
+    created_at: string
+  }>,
+  currentTime: Date = new Date()
+): Array<{
+  ease_factor: number
+  repetitions: number
+  interval: number
+  next_review: string
+  status: "new" | "learning" | "mastered"
+  created_at: string
+  priority_score?: number
+}> {
+  return words
+    .map((word) => ({
+      ...word,
+      priority_score: calculatePriorityScore(word, currentTime),
+    }))
+    .sort((a, b) => (b.priority_score || 0) - (a.priority_score || 0))
+}
+
+/**
+ * Get priority description for debugging
+ * @param score Priority score (0-100)
+ * @returns Human-readable priority level
+ */
+export function getPriorityDescription(score: number): string {
+  if (score >= 80) return "Critical"
+  if (score >= 60) return "High"
+  if (score >= 40) return "Medium"
+  if (score >= 20) return "Low"
+  return "Minimal"
+}

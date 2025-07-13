@@ -7,9 +7,18 @@ import { VocabularyWord, SpacedRepetitionRating } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   getRatingDescription,
   getRatingButtonStyle,
   formatInterval,
+  getEaseDifficulty,
+  getEaseStars,
 } from "@/lib/spaced-repetition"
 import {
   RotateCcw,
@@ -44,6 +53,14 @@ export default function ReviewPage() {
   const [browseLoading, setBrowseLoading] = useState(false)
   const [updatingWords, setUpdatingWords] = useState(false)
   const [reviewStarted, setReviewStarted] = useState(false)
+  const [priorityStats, setPriorityStats] = useState<{
+    totalDue: number
+    priorityMode: string
+    priorityRange?: { highest: number; lowest: number }
+  } | null>(null)
+  const [selectedPriorityMode, setSelectedPriorityMode] = useState<
+    "difficulty" | "time"
+  >("difficulty")
 
   const { user } = useAuth()
 
@@ -51,12 +68,24 @@ export default function ReviewPage() {
     if (user) {
       fetchDueWords()
     }
-  }, [user])
+  }, [user, selectedPriorityMode])
+
+  // Load saved priority mode preference on mount
+  useEffect(() => {
+    const savedMode = localStorage.getItem("reviewPriorityMode") as
+      | "difficulty"
+      | "time"
+    if (savedMode && (savedMode === "difficulty" || savedMode === "time")) {
+      setSelectedPriorityMode(savedMode)
+    }
+  }, [])
 
   const fetchDueWords = async () => {
     try {
       setLoading(true)
-      const response = await fetch("/api/vocabulary/due?limit=20")
+      const response = await fetch(
+        `/api/vocabulary/due?limit=20&priority=${selectedPriorityMode}&includeStats=true`
+      )
       const data = await response.json()
 
       if (!response.ok) {
@@ -68,6 +97,13 @@ export default function ReviewPage() {
         total: data.words.length,
         completed: 0,
         remaining: data.words.length,
+      })
+
+      // Store priority stats for display
+      setPriorityStats({
+        totalDue: data.totalDue || data.words.length,
+        priorityMode: data.priorityMode || "difficulty",
+        priorityRange: data.priorityRange,
       })
 
       if (data.words.length === 0) {
@@ -215,6 +251,12 @@ export default function ReviewPage() {
     fetchDueWords() // Reset to normal due words
   }
 
+  const handlePriorityModeChange = (newMode: "difficulty" | "time") => {
+    setSelectedPriorityMode(newMode)
+    localStorage.setItem("reviewPriorityMode", newMode)
+    // The useEffect will automatically refetch words when selectedPriorityMode changes
+  }
+
   if (loading) {
     return (
       <ProtectedRoute>
@@ -281,10 +323,32 @@ export default function ReviewPage() {
         {/* Review Stats */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Session Progress
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Session Progress
+              </CardTitle>
+
+              {/* Priority Mode Toggle */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Mode:</span>
+                <Select
+                  value={selectedPriorityMode}
+                  onValueChange={handlePriorityModeChange}
+                  disabled={reviewStarted}
+                >
+                  <SelectTrigger className="w-[140px] h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="difficulty">
+                      🎯 Smart Priority
+                    </SelectItem>
+                    <SelectItem value="time">⏰ Time-based</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-4 text-center">
@@ -318,6 +382,68 @@ export default function ReviewPage() {
                       }%`,
                     }}
                   ></div>
+                </div>
+              </div>
+            )}
+
+            {/* Priority Mode Explanation */}
+            {priorityStats && (
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/50 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="text-sm">
+                  <div className="font-medium text-blue-900 dark:text-blue-100 mb-1">
+                    {priorityStats.priorityMode === "difficulty"
+                      ? "🎯 Smart Priority Active"
+                      : "⏰ Time-based Selection"}
+                  </div>
+                  <div className="text-blue-700 dark:text-blue-300">
+                    {priorityStats.priorityMode === "difficulty" ? (
+                      <>
+                        Showing your most challenging words first.
+                        {priorityStats.totalDue > reviewStats.total && (
+                          <span>
+                            {" "}
+                            Selected {reviewStats.total} most important out of{" "}
+                            {priorityStats.totalDue} due words.
+                          </span>
+                        )}
+                        {priorityStats.priorityRange && (
+                          <span className="block mt-1 text-xs">
+                            Difficulty scores:{" "}
+                            {Math.round(priorityStats.priorityRange.lowest)} -{" "}
+                            {Math.round(priorityStats.priorityRange.highest)}{" "}
+                            points
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      "Showing words in order of when they became due (oldest first)."
+                    )}
+                  </div>
+
+                  {/* Simple explanation of the difference */}
+                  <details className="mt-2">
+                    <summary className="text-xs text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
+                      What&apos;s the difference between priority modes?
+                    </summary>
+                    <div className="mt-2 text-xs text-blue-600 dark:text-blue-400 space-y-1">
+                      <div>
+                        <strong>🎯 Smart Priority:</strong> Reviews your hardest
+                        words first (words you fail, struggle with, or
+                        haven&apos;t seen in a while)
+                      </div>
+                      <div>
+                        <strong>⏰ Time-based:</strong> Reviews words in order
+                        of when they became due (oldest due words first)
+                      </div>
+                      <div className="text-blue-500 dark:text-blue-500 pt-1">
+                        <em>
+                          {selectedPriorityMode === "difficulty"
+                            ? "Smart Priority helps you focus on what you need to learn most!"
+                            : "Time-based ensures you review words as they become due."}
+                        </em>
+                      </div>
+                    </div>
+                  </details>
                 </div>
               </div>
             )}
@@ -402,9 +528,25 @@ export default function ReviewPage() {
                           </div>
 
                           <div className="text-xs text-muted-foreground pt-2 border-t">
-                            <div className="flex justify-between">
+                            <div className="flex justify-between items-center">
                               <span>Repetitions: {word.repetitions}</span>
-                              <span>Ease: {word.ease_factor?.toFixed(1)}</span>
+                              <div className="flex items-center gap-1">
+                                <span>Difficulty:</span>
+                                <span
+                                  className={`font-medium ${
+                                    getEaseDifficulty(word.ease_factor || 2.5)
+                                      .color
+                                  }`}
+                                >
+                                  {
+                                    getEaseDifficulty(word.ease_factor || 2.5)
+                                      .label
+                                  }
+                                </span>
+                                <span className="text-yellow-500 text-sm">
+                                  {getEaseStars(word.ease_factor || 2.5)}
+                                </span>
+                              </div>
                               <span>
                                 Next: {formatInterval(word.interval || 1)}
                               </span>
@@ -634,13 +776,41 @@ export default function ReviewPage() {
 
                         {/* Show current SM-2 stats */}
                         <div className="text-xs text-muted-foreground text-center">
-                          Current: {dueWords[currentWordIndex].repetitions}{" "}
-                          reps, ease{" "}
-                          {dueWords[currentWordIndex].ease_factor?.toFixed(1)},
-                          next in{" "}
-                          {formatInterval(
-                            dueWords[currentWordIndex].interval || 1
-                          )}
+                          <div className="flex justify-center items-center gap-4">
+                            <span>
+                              Repetitions:{" "}
+                              {dueWords[currentWordIndex].repetitions}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <span>Difficulty:</span>
+                              <span
+                                className={`font-medium ${
+                                  getEaseDifficulty(
+                                    dueWords[currentWordIndex].ease_factor ||
+                                      2.5
+                                  ).color
+                                }`}
+                              >
+                                {
+                                  getEaseDifficulty(
+                                    dueWords[currentWordIndex].ease_factor ||
+                                      2.5
+                                  ).label
+                                }
+                              </span>
+                              <span className="text-yellow-500 text-sm">
+                                {getEaseStars(
+                                  dueWords[currentWordIndex].ease_factor || 2.5
+                                )}
+                              </span>
+                            </div>
+                            <span>
+                              Next:{" "}
+                              {formatInterval(
+                                dueWords[currentWordIndex].interval || 1
+                              )}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>

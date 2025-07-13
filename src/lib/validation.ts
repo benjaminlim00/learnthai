@@ -72,6 +72,8 @@ export type GetVocabularyInput = z.infer<typeof getVocabularySchema>
 // Get due vocabulary cards validation
 export const getDueVocabularySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional().default(20),
+  priority: z.enum(["time", "difficulty"]).optional().default("difficulty"),
+  includeStats: z.coerce.boolean().optional().default(false),
 })
 
 export type GetDueVocabularyInput = z.infer<typeof getDueVocabularySchema>
