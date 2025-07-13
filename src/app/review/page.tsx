@@ -115,11 +115,25 @@ export default function ReviewPage() {
   }
 
   const handleRating = async (rating: SpacedRepetitionRating) => {
-    if (dueWords.length === 0 || submittingRating) return
+    // Prevent multiple rapid clicks and ensure we have valid state
+    if (
+      dueWords.length === 0 ||
+      submittingRating ||
+      currentWordIndex >= dueWords.length
+    ) {
+      return
+    }
 
     setSubmittingRating(true)
+    setError("") // Clear any previous errors
+
     try {
       const currentWord = dueWords[currentWordIndex]
+
+      // Double-check we have a valid word
+      if (!currentWord || !currentWord.id) {
+        throw new Error("Invalid word data")
+      }
 
       const response = await fetch("/api/vocabulary/rate", {
         method: "POST",
@@ -137,32 +151,38 @@ export default function ReviewPage() {
         throw new Error(data.error || "Failed to rate word")
       }
 
-      // Move to next word or complete session
+      // Update stats immediately for better UX
       const newCompleted = reviewStats.completed + 1
-      const newRemaining = reviewStats.remaining - 1
+      const newRemaining = Math.max(0, reviewStats.remaining - 1)
 
+      setReviewStats({
+        total: reviewStats.total,
+        completed: newCompleted,
+        remaining: newRemaining,
+      })
+
+      // Move to next word or complete session
       if (currentWordIndex < dueWords.length - 1) {
-        setCurrentWordIndex(currentWordIndex + 1)
+        setCurrentWordIndex((prev) => prev + 1)
         setShowAnswer(false)
-        setReviewStats({
-          total: reviewStats.total,
-          completed: newCompleted,
-          remaining: newRemaining,
-        })
       } else {
         // Session complete
         setSessionComplete(true)
         setReviewStarted(false)
-        setReviewStats({
-          total: reviewStats.total,
-          completed: newCompleted,
-          remaining: 0,
-        })
+        setCurrentWordIndex(0)
+        setShowAnswer(false)
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to rate word")
+      // More descriptive error handling
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to rate word"
+      setError(`Rating failed: ${errorMessage}. Please try again.`)
+      console.error("Rating error:", error)
     } finally {
-      setSubmittingRating(false)
+      // Add a small delay to prevent rapid successive calls
+      setTimeout(() => {
+        setSubmittingRating(false)
+      }, 300)
     }
   }
 

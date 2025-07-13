@@ -22,8 +22,15 @@ CREATE TABLE vocabulary (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Disable Row Level Security for now (application-level security through API routes)
-ALTER TABLE vocabulary DISABLE ROW LEVEL SECURITY;
+-- Enable Row Level Security for data isolation
+ALTER TABLE vocabulary ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for vocabulary table
+CREATE POLICY "Users can only access own vocabulary" ON vocabulary
+  FOR ALL USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can only insert own vocabulary" ON vocabulary
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Create indexes for better performance
 CREATE INDEX idx_vocabulary_user_id ON vocabulary(user_id);

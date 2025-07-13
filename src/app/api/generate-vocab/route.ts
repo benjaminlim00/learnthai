@@ -13,9 +13,10 @@ import {
   gptVocabularyResponseSchema,
 } from "@/lib/validation"
 import { User } from "@supabase/supabase-js"
+import { env } from "@/lib/env"
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: env.OPENAI_API_KEY,
 })
 
 // POST - Generate vocabulary
@@ -26,11 +27,6 @@ const generateVocabHandler = withAuthAndValidation(
     validatedData: GenerateVocabInput
   ) => {
     try {
-      // Check for OpenAI API key
-      if (!process.env.OPENAI_API_KEY) {
-        return errorResponse("OpenAI API key not configured", 500)
-      }
-
       const { topic } = validatedData
 
       // Get user's learned words to avoid repetition

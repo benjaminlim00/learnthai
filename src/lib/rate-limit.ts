@@ -1,66 +1,71 @@
 import { NextRequest, NextResponse } from "next/server"
+import { Ratelimit } from "@upstash/ratelimit"
+import { Redis } from "@upstash/redis"
+import { env } from "./env"
 
-// In-memory rate limiter fallback (for development)
-const inMemoryRateLimiter = new Map<
-  string,
-  { count: number; resetTime: number }
->()
+// Initialize Redis client if available
+let redis: Redis | null = null
 
-// Create rate limiter with in-memory fallback
-const createRateLimiter = (requests: number, window: string) => {
-  // For production, you can configure Upstash Redis here
-  // For now, use in-memory rate limiter
-  return {
-    limit: async (identifier: string) => {
-      const now = Date.now()
-      const windowMs =
-        window === "1m" ? 60000 : window === "1h" ? 3600000 : 60000
-
-      const record = inMemoryRateLimiter.get(identifier)
-
-      if (!record || now > record.resetTime) {
-        // Reset or create new record
-        inMemoryRateLimiter.set(identifier, {
-          count: 1,
-          resetTime: now + windowMs,
-        })
-        return {
-          success: true,
-          limit: requests,
-          remaining: requests - 1,
-          reset: now + windowMs,
-        }
-      }
-
-      if (record.count >= requests) {
-        return {
-          success: false,
-          limit: requests,
-          remaining: 0,
-          reset: record.resetTime,
-        }
-      }
-
-      record.count++
-      return {
-        success: true,
-        limit: requests,
-        remaining: requests - record.count,
-        reset: record.resetTime,
-      }
-    },
+try {
+  if (env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
+    redis = new Redis({
+      url: env.UPSTASH_REDIS_REST_URL,
+      token: env.UPSTASH_REDIS_REST_TOKEN,
+    })
+    console.log("✅ Redis rate limiter initialized")
+  } else {
+    console.warn(
+      "⚠️  Redis configuration missing - rate limiting will be disabled in development"
+    )
   }
+} catch (error) {
+  console.warn("⚠️  Failed to initialize Redis:", error)
+  redis = null
 }
 
-// Rate limiters for different endpoints
-export const vocabGenerationLimiter = createRateLimiter(10, "1h") // 10 requests per hour
-export const translationLimiter = createRateLimiter(30, "1h") // 30 requests per hour
-export const generalApiLimiter = createRateLimiter(100, "1h") // 100 requests per hour
+// Create mock rate limiter for development/fallback
+const createMockRateLimiter = () => ({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  limit: async (_identifier: string) => ({
+    success: true,
+    limit: 1000,
+    remaining: 999,
+    reset: Date.now() + 3600000, // 1 hour from now
+  }),
+})
+
+// Create rate limiters for different endpoints
+export const vocabGenerationLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(10, "1 h"),
+      analytics: true,
+      prefix: "@learnthai/ratelimit/vocab",
+    })
+  : createMockRateLimiter()
+
+export const translationLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(30, "1 h"),
+      analytics: true,
+      prefix: "@learnthai/ratelimit/translate",
+    })
+  : createMockRateLimiter()
+
+export const generalApiLimiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(100, "1 h"),
+      analytics: true,
+      prefix: "@learnthai/ratelimit/general",
+    })
+  : createMockRateLimiter()
 
 // Rate limiting middleware
 export const withRateLimit = (
   handler: (request: NextRequest) => Promise<NextResponse>,
-  limiter: ReturnType<typeof createRateLimiter>,
+  limiter: Ratelimit | ReturnType<typeof createMockRateLimiter>,
   getIdentifier?: (request: NextRequest) => string
 ) => {
   return async (request: NextRequest) => {
@@ -93,9 +98,10 @@ export const withRateLimit = (
         )
       }
 
-      // Add rate limit headers to successful responses
+      // Execute the handler
       const response = await handler(request)
 
+      // Add rate limit headers to successful responses
       response.headers.set("X-RateLimit-Limit", limit.toString())
       response.headers.set("X-RateLimit-Remaining", remaining.toString())
       response.headers.set("X-RateLimit-Reset", new Date(reset).toISOString())
@@ -136,7 +142,7 @@ export const getUserIdentifier = (request: NextRequest): string => {
 // Combined rate limiting and auth middleware
 export const withRateLimitAndAuth = (
   handler: (request: NextRequest) => Promise<NextResponse>,
-  limiter: ReturnType<typeof createRateLimiter>
+  limiter: Ratelimit | ReturnType<typeof createMockRateLimiter>
 ) => {
   return withRateLimit(handler, limiter, getUserIdentifier)
 }

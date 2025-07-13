@@ -8,20 +8,16 @@ import {
 import { withRateLimit, translationLimiter } from "@/lib/rate-limit"
 import { translateSchema, TranslateInput } from "@/lib/validation"
 import { User } from "@supabase/supabase-js"
+import { env } from "@/lib/env"
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: env.OPENAI_API_KEY,
 })
 
 // POST - Translate text
 const translateHandler = withAuthAndValidation(
   async (request: NextRequest, user: User, validatedData: TranslateInput) => {
     try {
-      // Check for OpenAI API key
-      if (!process.env.OPENAI_API_KEY) {
-        return errorResponse("OpenAI API key not configured", 500)
-      }
-
       const { text, sourceLanguage, targetLanguage } = validatedData
 
       // Check if we need romanization (English to Thai)

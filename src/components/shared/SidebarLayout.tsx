@@ -116,8 +116,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
               variant="ghost"
               size="icon"
               onClick={() => setIsMobileOpen(true)}
-              //TODO: fix size
-              className="h-9 w-9"
+              className="h-10 w-10 min-h-[44px] min-w-[44px]"
             >
               <Menu className="h-6 w-6" />
             </Button>

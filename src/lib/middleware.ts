@@ -1,28 +1,39 @@
 import { NextRequest, NextResponse } from "next/server"
 import { User } from "@supabase/supabase-js"
 import { authenticateRequest } from "./supabase"
+import {
+  ApiError,
+  createErrorContext,
+  createErrorResponse,
+} from "./error-logger"
 
 // Auth middleware wrapper
 export const withAuth = (
   handler: (request: NextRequest, user: User) => Promise<NextResponse>
 ) => {
   return async (request: NextRequest) => {
+    const context = createErrorContext(request)
+
     try {
       const { user, error } = await authenticateRequest(request)
 
       if (error || !user) {
-        return NextResponse.json(
-          { error: error || "Unauthorized" },
-          { status: 401 }
-        )
+        throw new ApiError(error || "Unauthorized", 401, "AUTH_FAILED")
       }
 
       return handler(request, user)
     } catch (error) {
-      console.error("Auth middleware error:", error)
-      return NextResponse.json(
-        { error: "Internal server error" },
-        { status: 500 }
+      if (error instanceof ApiError) {
+        return createErrorResponse(error, context)
+      }
+
+      return createErrorResponse(
+        new ApiError(
+          "Authentication middleware failed",
+          500,
+          "AUTH_MIDDLEWARE_ERROR"
+        ),
+        context
       )
     }
   }
@@ -38,26 +49,25 @@ export const withAuthAndValidation = <T>(
   validationSchema: { parse: (data: unknown) => T }
 ) => {
   return async (request: NextRequest) => {
+    const context = createErrorContext(request)
+
     try {
       // Check authentication
       const { user, error } = await authenticateRequest(request)
 
       if (error || !user) {
-        return NextResponse.json(
-          { error: error || "Unauthorized" },
-          { status: 401 }
-        )
+        throw new ApiError(error || "Unauthorized", 401, "AUTH_FAILED")
       }
+
+      // Update context with user info
+      context.userId = user.id
 
       // Validate request data
       let requestData: unknown
       try {
         requestData = await request.json()
       } catch {
-        return NextResponse.json(
-          { error: "Invalid JSON in request body" },
-          { status: 400 }
-        )
+        throw new ApiError("Invalid JSON in request body", 400, "INVALID_JSON")
       }
 
       let validatedData: T
@@ -66,15 +76,18 @@ export const withAuthAndValidation = <T>(
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : "Invalid request data"
-        return NextResponse.json({ error: errorMessage }, { status: 400 })
+        throw new ApiError(errorMessage, 400, "VALIDATION_FAILED")
       }
 
       return handler(request, user, validatedData)
     } catch (error) {
-      console.error("Middleware error:", error)
-      return NextResponse.json(
-        { error: "Internal server error" },
-        { status: 500 }
+      if (error instanceof ApiError) {
+        return createErrorResponse(error, context)
+      }
+
+      return createErrorResponse(
+        new ApiError("Middleware error", 500, "MIDDLEWARE_ERROR"),
+        context
       )
     }
   }
