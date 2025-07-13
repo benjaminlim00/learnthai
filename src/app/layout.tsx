@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import { Inter, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/AuthContext"
-import { ThemeProvider } from "@/components/theme-provider"
-import { SidebarLayout } from "@/components/SidebarLayout"
+import { ThemeProvider } from "@/components/shared/theme-provider"
+import { SidebarLayout } from "@/components/shared/SidebarLayout"
 
 const inter = Inter({
   variable: "--font-inter",

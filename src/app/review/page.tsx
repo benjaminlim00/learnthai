@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { ProtectedRoute } from "@/components/ProtectedRoute"
+import { ProtectedRoute } from "@/components/shared/ProtectedRoute"
 import { VocabularyWord, SpacedRepetitionRating } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { DeleteConfirmationModal } from "@/components/DeleteConfirmationModal"
-import { PriorityModeSelector } from "@/components/PriorityModeSelector"
-import { SessionStats } from "@/components/SessionStats"
-import { ReviewSession } from "@/components/ReviewSession"
-import { BrowseVocabulary } from "@/components/BrowseVocabulary"
+import { DeleteConfirmationModal } from "@/components/review/DeleteConfirmationModal"
+import { PriorityModeSelector } from "@/components/review/PriorityModeSelector"
+import { SessionStats } from "@/components/review/SessionStats"
+import { ReviewSession } from "@/components/review/ReviewSession"
+import { BrowseVocabulary } from "@/components/review/BrowseVocabulary"
 import {
   Play,
   RotateCcw,

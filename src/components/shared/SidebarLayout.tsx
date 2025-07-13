@@ -4,7 +4,7 @@ import { useState, useEffect, createContext, useContext } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { ThemeToggle } from "@/components/shared/theme-toggle"
 import {
   Menu,
   X,

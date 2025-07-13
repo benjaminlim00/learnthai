@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { ProtectedRoute } from "@/components/ProtectedRoute"
+import { ProtectedRoute } from "@/components/shared/ProtectedRoute"
 
 import { GPTVocabularyResponse } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { VocabularyLoading } from "@/components/vocabulary-loading"
+import { VocabularyLoading } from "@/components/topic/vocabulary-loading"
 import { History, X } from "lucide-react"
 
 interface VocabularyResult {

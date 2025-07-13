@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { ProtectedRoute } from "@/components/ProtectedRoute"
+import { ProtectedRoute } from "@/components/shared/ProtectedRoute"
 
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
