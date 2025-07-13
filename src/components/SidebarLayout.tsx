@@ -122,7 +122,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
               <Menu className="h-6 w-6" />
             </Button>
 
-            <h1 className="absolute inset-0 top-6 text-center text-lg font-semibold text-foreground">
+            <h1 className="absolute top-5 text-center text-lg font-semibold text-foreground left-1/2 transform -translate-x-1/2">
               LearnThaiAI
             </h1>
           </header>
