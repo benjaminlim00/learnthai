@@ -8,12 +8,27 @@ import { VocabularyWord } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
+interface GenerationStats {
+  dailyUsed: number
+  dailyLimit: number
+  remaining: number
+  resetTime: string
+  nextReset: string
+}
+
 export default function AccountPage() {
   const [stats, setStats] = useState({
     total: 0,
     new: 0,
     learning: 0,
     mastered: 0,
+  })
+  const [generationStats, setGenerationStats] = useState<GenerationStats>({
+    dailyUsed: 0,
+    dailyLimit: 5,
+    remaining: 5,
+    resetTime: "midnight (UTC)",
+    nextReset: "",
   })
   const [loading, setLoading] = useState(true)
 
@@ -22,6 +37,7 @@ export default function AccountPage() {
   useEffect(() => {
     if (user) {
       fetchStats()
+      fetchGenerationStats()
     }
   }, [user])
 
@@ -45,6 +61,21 @@ export default function AccountPage() {
       console.error("Error fetching stats:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchGenerationStats = async () => {
+    if (!user) return
+
+    try {
+      const response = await fetch(`/api/generation-stats`)
+      const data = await response.json()
+
+      if (response.ok) {
+        setGenerationStats(data)
+      }
+    } catch (error) {
+      console.error("Error fetching generation stats:", error)
     }
   }
 
@@ -136,6 +167,58 @@ export default function AccountPage() {
                   {stats.mastered}
                 </div>
                 <div className="text-sm text-muted-foreground">Mastered</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Generation Usage</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Daily Generation Limit
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {generationStats.dailyUsed} / {generationStats.dailyLimit}{" "}
+                    generations used today
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-primary">
+                    {generationStats.remaining}
+                  </div>
+                  <div className="text-sm text-muted-foreground">remaining</div>
+                </div>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${
+                      (generationStats.dailyUsed / generationStats.dailyLimit) *
+                      100
+                    }%`,
+                  }}
+                ></div>
+              </div>
+              <div className="flex justify-between items-center text-sm text-muted-foreground">
+                <span>Resets at {generationStats.resetTime}</span>
+                <span>
+                  {generationStats.dailyUsed >= generationStats.dailyLimit ? (
+                    <span className="text-orange-600 font-medium">
+                      Limit reached
+                    </span>
+                  ) : (
+                    <span className="text-green-600 font-medium">
+                      {generationStats.remaining} left
+                    </span>
+                  )}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -248,31 +331,6 @@ export default function AccountPage() {
                   <p className="text-sm text-muted-foreground">
                     All Thai words include romanization using the Royal Thai
                     General System of Transcription
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg
-                    className="w-3 h-3 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-medium text-foreground">
-                    Dark Theme Support
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Modern dark theme interface with customizable appearance
                   </p>
                 </div>
               </div>

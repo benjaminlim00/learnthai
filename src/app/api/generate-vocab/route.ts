@@ -29,8 +29,43 @@ const generateVocabHandler = withAuthAndValidation(
     try {
       const { topic } = validatedData
 
-      // Get user's learned words to avoid repetition
+      // Check daily usage limit (5 generations per day)
       const supabase = await createServerSupabaseClient(request)
+
+      try {
+        const { data: dailyUsage, error: usageError } = await supabase
+          .from("generation_logs")
+          .select("id", { count: "exact" })
+          .eq("user_id", user.id)
+          .gte(
+            "created_at",
+            new Date().toISOString().split("T")[0] + "T00:00:00.000Z"
+          )
+          .lt(
+            "created_at",
+            new Date(Date.now() + 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split("T")[0] + "T00:00:00.000Z"
+          )
+
+        if (usageError) {
+          console.error("Error checking daily usage:", usageError)
+          return errorResponse("Failed to check daily usage limit", 500)
+        }
+
+        const dailyCount = dailyUsage?.length || 0
+        if (dailyCount >= 5) {
+          return errorResponse(
+            "You've reached your daily generation limit of 5 generations. Try again tomorrow!",
+            403
+          )
+        }
+      } catch (error) {
+        console.error("Database error checking daily usage:", error)
+        return errorResponse("Failed to check daily usage limit", 500)
+      }
+
+      // Get user's learned words to avoid repetition
       let learnedWordsList: string[] = []
 
       try {
@@ -141,6 +176,34 @@ Respond with a JSON object containing a "vocabulary" array with exactly this str
       }
 
       const vocabWords = validationResult.data.vocabulary
+
+      // Store generation log
+      try {
+        const vocabularyItems = vocabWords.map((word) => ({
+          word: word.word,
+          word_romanization: word.word_romanization,
+          translation: word.translation,
+          sentence: word.sentence,
+          sentence_romanization: word.sentence_romanization,
+          sentence_translation: word.sentence_translation,
+        }))
+
+        const { error: logError } = await supabase
+          .from("generation_logs")
+          .insert({
+            user_id: user.id,
+            input_topic: topic,
+            vocabulary_response: vocabularyItems,
+          })
+
+        if (logError) {
+          console.error("Error storing generation log:", logError)
+          // Continue and return result even if logging fails
+        }
+      } catch (error) {
+        console.error("Database error storing generation log:", error)
+        // Continue and return result even if logging fails
+      }
 
       return successResponse({ vocabWords })
     } catch (error) {

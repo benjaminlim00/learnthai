@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { VocabularyLoading } from "@/components/topic/vocabulary-loading"
-import { History, X } from "lucide-react"
+import { BookOpen, History, X } from "lucide-react"
 
 interface VocabularyResult {
   id: string
@@ -158,9 +158,12 @@ export default function TopicPage() {
     <ProtectedRoute>
       <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">
-            Generate Thai Vocabulary
-          </h2>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <BookOpen className="h-8 w-8 text-primary" />
+            <h2 className="text-3xl font-bold text-foreground ">
+              Generate Thai Vocabulary
+            </h2>
+          </div>
           <p className="text-muted-foreground">
             Enter a topic and get AI-generated Thai vocabulary words with
             English translations and example sentences.

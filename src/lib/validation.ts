@@ -1,6 +1,5 @@
 import { z } from "zod"
 
-// Generate vocabulary API validation (userId removed - comes from auth)
 export const generateVocabSchema = z.object({
   topic: z.string().min(1, "Topic is required").max(200, "Topic too long"),
 })
@@ -9,7 +8,7 @@ export type GenerateVocabInput = z.infer<typeof generateVocabSchema>
 
 // Translation API validation
 export const translateSchema = z.object({
-  text: z.string().min(1, "Text is required").max(5000, "Text too long"),
+  text: z.string().min(1, "Text is required").max(500, "Text too long"),
   sourceLanguage: z.enum(["English", "Thai"], {
     required_error: "Source language is required",
   }),

@@ -117,4 +117,38 @@ SELECT
     AVG(interval) as avg_interval,
     MAX(created_at) as last_added_word
 FROM vocabulary
-GROUP BY user_id; 
+GROUP BY user_id;
+
+-- Create custom type for vocabulary items in generation logs
+CREATE TYPE vocabulary_item AS (
+  word text,
+  word_romanization text,
+  translation text,
+  sentence text,
+  sentence_romanization text,
+  sentence_translation text
+);
+
+-- Create generation logs table to track daily usage
+CREATE TABLE generation_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  input_topic TEXT NOT NULL,
+  vocabulary_response vocabulary_item[],
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable Row Level Security for generation logs
+ALTER TABLE generation_logs ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for generation logs
+CREATE POLICY "Users can only access own generation logs" ON generation_logs
+  FOR ALL USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can only insert own generation logs" ON generation_logs
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Create indexes for performance
+CREATE INDEX idx_generation_logs_user_id ON generation_logs(user_id);
+CREATE INDEX idx_generation_logs_created_at ON generation_logs(created_at DESC);
+CREATE INDEX idx_generation_logs_user_created_at ON generation_logs(user_id, created_at); 
