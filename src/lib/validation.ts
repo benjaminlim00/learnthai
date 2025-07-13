@@ -1,0 +1,112 @@
+import { z } from "zod"
+
+// Generate vocabulary API validation (userId removed - comes from auth)
+export const generateVocabSchema = z.object({
+  topic: z.string().min(1, "Topic is required").max(200, "Topic too long"),
+})
+
+export type GenerateVocabInput = z.infer<typeof generateVocabSchema>
+
+// Translation API validation
+export const translateSchema = z.object({
+  text: z.string().min(1, "Text is required").max(5000, "Text too long"),
+  sourceLanguage: z.enum(["English", "Thai"], {
+    required_error: "Source language is required",
+  }),
+  targetLanguage: z.enum(["English", "Thai"], {
+    required_error: "Target language is required",
+  }),
+})
+
+export type TranslateInput = z.infer<typeof translateSchema>
+
+// Vocabulary word creation validation (userId removed - comes from auth)
+export const createVocabularySchema = z.object({
+  word: z.string().min(1, "Word is required").max(200, "Word too long"),
+  word_romanization: z.string().optional(),
+  translation: z
+    .string()
+    .min(1, "Translation is required")
+    .max(500, "Translation too long"),
+  sentence: z
+    .string()
+    .min(1, "Sentence is required")
+    .max(1000, "Sentence too long"),
+  sentence_romanization: z.string().optional(),
+  sentence_translation: z.string().optional(),
+})
+
+export type CreateVocabularyInput = z.infer<typeof createVocabularySchema>
+
+// Vocabulary word update validation
+export const updateVocabularySchema = z.object({
+  id: z.string().uuid("Invalid vocabulary ID format"),
+  status: z.enum(["new", "learning", "mastered"], {
+    required_error: "Status is required",
+  }),
+})
+
+export type UpdateVocabularyInput = z.infer<typeof updateVocabularySchema>
+
+// Vocabulary query validation (userId removed - comes from auth)
+export const getVocabularySchema = z.object({
+  status: z.enum(["new", "learning", "mastered"]).optional(),
+})
+
+export type GetVocabularyInput = z.infer<typeof getVocabularySchema>
+
+// Delete vocabulary validation
+export const deleteVocabularySchema = z.object({
+  id: z.string().uuid("Invalid vocabulary ID format"),
+})
+
+export type DeleteVocabularyInput = z.infer<typeof deleteVocabularySchema>
+
+// GPT vocabulary response validation (for API responses)
+export const gptVocabularyWordSchema = z.object({
+  word: z.string().min(1, "Word is required"),
+  word_romanization: z.string().min(1, "Word romanization is required"),
+  translation: z.string().min(1, "Translation is required"),
+  sentence: z.string().min(1, "Sentence is required"),
+  sentence_romanization: z.string().min(1, "Sentence romanization is required"),
+  sentence_translation: z.string().min(1, "Sentence translation is required"),
+})
+
+export const gptVocabularyResponseSchema = z.object({
+  vocabulary: z
+    .array(gptVocabularyWordSchema)
+    .min(1, "At least one vocabulary word is required")
+    .max(15, "Too many vocabulary words"),
+})
+
+export type GPTVocabularyWord = z.infer<typeof gptVocabularyWordSchema>
+export type GPTVocabularyResponse = z.infer<typeof gptVocabularyResponseSchema>
+
+// Helper function to validate request data
+export const validateRequest = <T>(
+  schema: z.ZodSchema<T>,
+  data: unknown
+):
+  | {
+      success: true
+      data: T
+      error: null
+    }
+  | {
+      success: false
+      data: null
+      error: string
+    } => {
+  try {
+    const result = schema.parse(data)
+    return { success: true, data: result, error: null }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const errorMessage = error.errors
+        .map((e) => `${e.path.join(".")}: ${e.message}`)
+        .join(", ")
+      return { success: false, data: null, error: errorMessage }
+    }
+    return { success: false, data: null, error: "Invalid input data" }
+  }
+}
