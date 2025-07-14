@@ -85,18 +85,18 @@ export function ReviewSession({
                 <h3 className="font-semibold text-foreground">
                   How well did you know this word?
                 </h3>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {ratings.map((rating) => (
                     <Button
                       key={rating}
                       onClick={() => onRating(rating)}
                       disabled={submittingRating}
-                      className={`h-auto py-3 px-4 ${getRatingButtonStyle(
+                      className={`h-auto py-3 px-2 sm:px-4 ${getRatingButtonStyle(
                         rating
                       )}`}
                     >
-                      <div className="text-left">
-                        <div className="font-medium">
+                      <div className="text-left w-full">
+                        <div className="font-medium text-sm sm:text-base leading-tight">
                           {rating} - {getRatingDescription(rating)}
                         </div>
                       </div>

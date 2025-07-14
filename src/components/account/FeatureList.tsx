@@ -21,10 +21,6 @@ const features = [
     description:
       "All Thai words include romanization using the Royal Thai General System of Transcription",
   },
-  {
-    title: "Dark Theme Support",
-    description: "Modern dark theme interface with customizable appearance",
-  },
 ]
 
 export function FeatureList() {
