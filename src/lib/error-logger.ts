@@ -1,3 +1,5 @@
+import { NextResponse } from "next/server"
+
 interface ErrorContext {
   userId?: string
   endpoint: string
@@ -97,7 +99,7 @@ export function createErrorResponse(
 
   // Return appropriate error response
   if (error instanceof ApiError) {
-    return Response.json(
+    return NextResponse.json(
       {
         error: error.message,
         code: error.code,
@@ -108,7 +110,7 @@ export function createErrorResponse(
   }
 
   // For unknown errors, don't expose internal details
-  return Response.json(
+  return NextResponse.json(
     {
       error: "Internal server error",
       timestamp: new Date().toISOString(),

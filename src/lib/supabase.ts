@@ -58,12 +58,6 @@ export const createServerClient = () => {
   return createClient(supabaseUrl, supabaseAnonKey)
 }
 
-// Admin client for server-side operations
-export const createAdminClient = () => {
-  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY
-  return createClient(supabaseUrl, serviceRoleKey)
-}
-
 // Authentication utility for API routes
 export const authenticateRequest = async (request: NextRequest) => {
   const supabase = await createServerSupabaseClient(request)

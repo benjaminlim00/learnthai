@@ -35,7 +35,6 @@ Create `.env.local`:
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 # OpenAI Configuration
 OPENAI_API_KEY=your_openai_api_key
@@ -64,7 +63,7 @@ Open [http://localhost:3000](http://localhost:3000) 🎉
 **Supabase Keys:**
 
 1. Project Dashboard → Settings → API
-2. Copy Project URL, anon key, and service_role key
+2. Copy Project URL, anon key
 
 **OpenAI API Key:**
 
@@ -352,7 +351,6 @@ learnthai/
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_production_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_production_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_production_service_key
 OPENAI_API_KEY=your_openai_api_key
 UPSTASH_REDIS_REST_URL=your_redis_url
 UPSTASH_REDIS_REST_TOKEN=your_redis_token
