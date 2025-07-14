@@ -78,9 +78,14 @@ export const getDueVocabularySchema = z.object({
 export type GetDueVocabularyInput = z.infer<typeof getDueVocabularySchema>
 
 // Delete vocabulary validation
-export const deleteVocabularySchema = z.object({
-  id: z.string().uuid("Invalid vocabulary ID format"),
-})
+export const deleteVocabularySchema = z
+  .object({
+    id: z.string().uuid("Invalid vocabulary ID format").optional(),
+    word: z.string().min(1, "Word is required").optional(),
+  })
+  .refine((data) => data.id || data.word, {
+    message: "Either id or word must be provided",
+  })
 
 export type DeleteVocabularyInput = z.infer<typeof deleteVocabularySchema>
 

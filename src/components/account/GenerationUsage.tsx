@@ -44,19 +44,8 @@ export function GenerationUsage({ generationStats }: GenerationUsageProps) {
               }}
             ></div>
           </div>
-          <div className="flex justify-between items-center text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground">
             <span>Resets at {generationStats.resetTime}</span>
-            <span>
-              {generationStats.dailyUsed >= generationStats.dailyLimit ? (
-                <span className="text-orange-600 font-medium">
-                  Limit reached
-                </span>
-              ) : (
-                <span className="text-green-600 font-medium">
-                  {generationStats.remaining} left
-                </span>
-              )}
-            </span>
           </div>
         </div>
       </CardContent>

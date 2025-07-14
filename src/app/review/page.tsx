@@ -4,81 +4,127 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { ProtectedRoute } from "@/components/shared/ProtectedRoute"
 import { VocabularyWord, SpacedRepetitionRating } from "@/types/database"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { DeleteConfirmationModal } from "@/components/review/DeleteConfirmationModal"
-import { PriorityModeSelector } from "@/components/review/PriorityModeSelector"
-import { SessionStats } from "@/components/review/SessionStats"
-import { ReviewSession } from "@/components/review/ReviewSession"
-import { BrowseVocabulary } from "@/components/review/BrowseVocabulary"
 import {
-  Play,
-  RotateCcw,
-  BookOpen,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-} from "lucide-react"
+  ModeToggle,
+  ErrorDisplay,
+  SessionStats,
+  PriorityModeSelector,
+  ReviewStatus,
+  ActiveReviewCard,
+  BrowseVocabulary,
+  DeleteConfirmationModal,
+} from "@/components/review"
+import { RotateCcw, Clock } from "lucide-react"
 
-interface ReviewStats {
-  total: number
-  completed: number
-  remaining: number
-}
+type ReviewState =
+  | "LOADING"
+  | "NO_WORDS"
+  | "NO_DUE_WORDS"
+  | "READY_TO_REVIEW"
+  | "REVIEWING"
+  | "SESSION_COMPLETE"
+
+type Mode = "browse" | "review"
 
 export default function ReviewPage() {
+  const { user } = useAuth()
+
+  // Data states
   const [dueWords, setDueWords] = useState<VocabularyWord[]>([])
+  const [allWords, setAllWords] = useState<VocabularyWord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [browseLoading, setBrowseLoading] = useState(false)
+
+  // Review session states
+  const [mode, setMode] = useState<Mode>("review")
+  const [isReviewing, setIsReviewing] = useState(false)
   const [currentWordIndex, setCurrentWordIndex] = useState(0)
   const [showAnswer, setShowAnswer] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [initialDueCount, setInitialDueCount] = useState(0)
+
+  // UI states
   const [submittingRating, setSubmittingRating] = useState(false)
-  const [error, setError] = useState("")
-  const [reviewStats, setReviewStats] = useState<ReviewStats>({
-    total: 0,
-    completed: 0,
-    remaining: 0,
-  })
-  const [sessionComplete, setSessionComplete] = useState(false)
-  const [viewMode, setViewMode] = useState<"review" | "browse">("review")
-  const [allWords, setAllWords] = useState<VocabularyWord[]>([])
-  const [browseLoading, setBrowseLoading] = useState(false)
   const [updatingWords, setUpdatingWords] = useState(false)
-  const [reviewStarted, setReviewStarted] = useState(false)
+  const [error, setError] = useState("")
+
+  // Settings
+  const [selectedPriorityMode, setSelectedPriorityMode] = useState<
+    "difficulty" | "time"
+  >("difficulty")
   const [priorityStats, setPriorityStats] = useState<{
     totalDue: number
     priorityMode: string
     priorityRange?: { highest: number; lowest: number }
   } | null>(null)
-  const [selectedPriorityMode, setSelectedPriorityMode] = useState<
-    "difficulty" | "time"
-  >("difficulty")
+
+  // Delete modal states
   const [deletingWordId, setDeletingWordId] = useState<string | null>(null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [wordToDelete, setWordToDelete] = useState<VocabularyWord | null>(null)
 
-  const { user } = useAuth()
-
-  useEffect(() => {
-    if (user) {
-      fetchDueWords()
+  // Computed state - this is the key simplification
+  const computedState: ReviewState = (() => {
+    if (loading) return "LOADING"
+    if (allWords.length === 0) return "NO_WORDS"
+    if (isReviewing) {
+      if (currentWordIndex >= initialDueCount) return "SESSION_COMPLETE"
+      return "REVIEWING"
     }
-  }, [user, selectedPriorityMode])
+    if (dueWords.length === 0) return "NO_DUE_WORDS"
+    return "READY_TO_REVIEW"
+  })()
 
-  // Load saved priority mode preference on mount
+  // Derived values
+  const reviewStats = {
+    total: initialDueCount,
+    completed: currentWordIndex,
+    remaining: Math.max(0, initialDueCount - currentWordIndex),
+  }
+
+  // Single useEffect for data fetching and initialization
   useEffect(() => {
-    const savedMode = localStorage.getItem("reviewPriorityMode") as
-      | "difficulty"
-      | "time"
-    if (savedMode && (savedMode === "difficulty" || savedMode === "time")) {
-      setSelectedPriorityMode(savedMode)
-    }
-  }, [])
+    if (!user) return
 
-  const fetchDueWords = async () => {
-    try {
+    const initializeData = async () => {
       setLoading(true)
+      setError("")
+
+      try {
+        // Load saved priority mode
+        const savedMode = localStorage.getItem("reviewPriorityMode") as
+          | "difficulty"
+          | "time"
+        if (savedMode && (savedMode === "difficulty" || savedMode === "time")) {
+          setSelectedPriorityMode(savedMode)
+        }
+
+        // Fetch both due words and all words
+        await Promise.all([
+          fetchDueWords(savedMode || selectedPriorityMode),
+          fetchAllWords(false),
+        ])
+      } catch (error) {
+        console.error("Error initializing data:", error)
+        setError("Failed to load vocabulary data")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    initializeData()
+  }, [user])
+
+  // Effect for priority mode changes
+  useEffect(() => {
+    if (!user || loading) return
+    fetchDueWords(selectedPriorityMode)
+  }, [selectedPriorityMode, user, loading])
+
+  const fetchDueWords = async (priorityMode: "difficulty" | "time") => {
+    try {
       const response = await fetch(
-        `/api/vocabulary/due?limit=20&priority=${selectedPriorityMode}&includeStats=true`
+        `/api/vocabulary/due?limit=20&priority=${priorityMode}&includeStats=true`
       )
       const data = await response.json()
 
@@ -87,115 +133,33 @@ export default function ReviewPage() {
       }
 
       setDueWords(data.words)
-      setReviewStats({
-        total: data.words.length,
-        completed: 0,
-        remaining: data.words.length,
-      })
-
-      // Store priority stats for display
+      setInitialDueCount(data.words.length)
       setPriorityStats({
         totalDue: data.totalDue || data.words.length,
         priorityMode: data.priorityMode || "difficulty",
         priorityRange: data.priorityRange,
       })
 
-      if (data.words.length === 0) {
-        setSessionComplete(true)
-        setReviewStarted(false)
-      }
-
+      // Reset session state when new words are fetched
       setCurrentWordIndex(0)
       setShowAnswer(false)
+      setIsReviewing(false)
     } catch (error) {
-      setError(error instanceof Error ? error.message : "An error occurred")
-    } finally {
-      setLoading(false)
+      setError(
+        error instanceof Error ? error.message : "Failed to fetch due words"
+      )
+      setDueWords([])
+      setInitialDueCount(0)
     }
   }
 
-  const handleRating = async (rating: SpacedRepetitionRating) => {
-    // Prevent multiple rapid clicks and ensure we have valid state
-    if (
-      dueWords.length === 0 ||
-      submittingRating ||
-      currentWordIndex >= dueWords.length
-    ) {
-      return
-    }
-
-    setSubmittingRating(true)
-    setError("") // Clear any previous errors
-
+  const fetchAllWords = async (triggerLoading: boolean) => {
     try {
-      const currentWord = dueWords[currentWordIndex]
-
-      // Double-check we have a valid word
-      if (!currentWord || !currentWord.id) {
-        throw new Error("Invalid word data")
+      if (triggerLoading) {
+        setBrowseLoading(true)
+        setMode("browse")
       }
 
-      const response = await fetch("/api/vocabulary/rate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: currentWord.id,
-          rating,
-        }),
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || "Failed to rate word")
-      }
-
-      // Update stats immediately for better UX
-      const newCompleted = reviewStats.completed + 1
-      const newRemaining = Math.max(0, reviewStats.remaining - 1)
-
-      setReviewStats({
-        total: reviewStats.total,
-        completed: newCompleted,
-        remaining: newRemaining,
-      })
-
-      // Move to next word or complete session
-      if (currentWordIndex < dueWords.length - 1) {
-        setCurrentWordIndex((prev) => prev + 1)
-        setShowAnswer(false)
-      } else {
-        // Session complete
-        setSessionComplete(true)
-        setReviewStarted(false)
-        setCurrentWordIndex(0)
-        setShowAnswer(false)
-      }
-    } catch (error) {
-      // More descriptive error handling
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to rate word"
-      setError(`Rating failed: ${errorMessage}. Please try again.`)
-      console.error("Rating error:", error)
-    } finally {
-      // Add a small delay to prevent rapid successive calls
-      setTimeout(() => {
-        setSubmittingRating(false)
-      }, 300)
-    }
-  }
-
-  const startNewSession = () => {
-    setSessionComplete(false)
-    setReviewStarted(true)
-    setError("")
-    fetchDueWords()
-  }
-
-  const fetchAllWords = async () => {
-    try {
-      setBrowseLoading(true)
       const response = await fetch("/api/vocabulary")
       const data = await response.json()
 
@@ -208,23 +172,72 @@ export default function ReviewPage() {
       setError(
         error instanceof Error ? error.message : "Failed to fetch vocabulary"
       )
+      setAllWords([])
     } finally {
-      setBrowseLoading(false)
+      if (triggerLoading) {
+        setBrowseLoading(false)
+      }
     }
   }
 
-  const switchToReviewMode = () => {
-    setViewMode("review")
-    setReviewStarted(false)
+  const handleRating = async (rating: SpacedRepetitionRating) => {
+    if (
+      !isReviewing ||
+      submittingRating ||
+      currentWordIndex >= dueWords.length
+    ) {
+      return
+    }
+
+    setSubmittingRating(true)
+    setError("")
+
+    try {
+      const currentWord = dueWords[currentWordIndex]
+      if (!currentWord?.id) {
+        throw new Error("Invalid word data")
+      }
+
+      const response = await fetch("/api/vocabulary/rate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: currentWord.id, rating }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || "Failed to rate word")
+      }
+
+      // Move to next word
+      setCurrentWordIndex((prev) => prev + 1)
+      setShowAnswer(false)
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to rate word"
+      setError(`Rating failed: ${errorMessage}. Please try again.`)
+      console.error("Rating error:", error)
+    } finally {
+      setTimeout(() => setSubmittingRating(false), 300)
+    }
+  }
+
+  const startNewSession = () => {
+    setIsReviewing(true)
+    setCurrentWordIndex(0)
+    setShowAnswer(false)
     setError("")
   }
 
-  const switchToBrowseMode = () => {
-    setViewMode("browse")
-    setError("")
-    if (allWords.length === 0) {
-      fetchAllWords()
-    }
+  const quitSession = () => {
+    setIsReviewing(false)
+    setCurrentWordIndex(0)
+    setShowAnswer(false)
+    // Clear session data immediately to prevent flash
+    setDueWords([])
+    setInitialDueCount(0)
+    // Then fetch fresh due words
+    fetchDueWords(selectedPriorityMode)
   }
 
   const reviewAllLearned = async () => {
@@ -237,17 +250,11 @@ export default function ReviewPage() {
         throw new Error(data.error || "Failed to fetch vocabulary")
       }
 
-      // Start a session with all vocabulary words
       setDueWords(data.words)
-      setReviewStats({
-        total: data.words.length,
-        completed: 0,
-        remaining: data.words.length,
-      })
+      setInitialDueCount(data.words.length)
       setCurrentWordIndex(0)
       setShowAnswer(false)
-      setSessionComplete(false)
-      setReviewStarted(true)
+      setIsReviewing(true)
       setError("")
     } catch (error) {
       console.error("Error starting review all session:", error)
@@ -257,18 +264,23 @@ export default function ReviewPage() {
     }
   }
 
-  const quitSession = () => {
-    setReviewStarted(false)
-    setSessionComplete(false)
-    setShowAnswer(false)
-    setCurrentWordIndex(0)
-    fetchDueWords() // Reset to normal due words
+  const switchToReviewMode = () => {
+    setMode("review")
+    setError("")
+  }
+
+  const switchToBrowseMode = () => {
+    setError("")
+    if (allWords.length === 0) {
+      fetchAllWords(true)
+    } else {
+      setMode("browse")
+    }
   }
 
   const handlePriorityModeChange = (newMode: "difficulty" | "time") => {
     setSelectedPriorityMode(newMode)
     localStorage.setItem("reviewPriorityMode", newMode)
-    // The useEffect will automatically refetch words when selectedPriorityMode changes
   }
 
   const openDeleteModal = (word: VocabularyWord) => {
@@ -286,8 +298,14 @@ export default function ReviewPage() {
 
     setDeletingWordId(wordToDelete.id)
     try {
-      const response = await fetch(`/api/vocabulary?id=${wordToDelete.id}`, {
+      const response = await fetch("/api/vocabulary", {
         method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: wordToDelete.id,
+        }),
       })
 
       if (!response.ok) {
@@ -295,13 +313,26 @@ export default function ReviewPage() {
         throw new Error(data.error || "Failed to delete word")
       }
 
-      // Remove the word from the local state
+      // Update allWords
       setAllWords((prev) => prev.filter((word) => word.id !== wordToDelete.id))
 
-      // Clear any errors
-      setError("")
+      // Update dueWords if the deleted word was part of the current session
+      const deletedWordIndex = dueWords.findIndex(
+        (word) => word.id === wordToDelete.id
+      )
+      if (deletedWordIndex !== -1) {
+        setDueWords((prev) =>
+          prev.filter((word) => word.id !== wordToDelete.id)
+        )
+        setInitialDueCount((prev) => prev - 1)
 
-      // Close modal
+        // Adjust currentWordIndex if we deleted a word before the current position
+        if (deletedWordIndex < currentWordIndex) {
+          setCurrentWordIndex((prev) => prev - 1)
+        }
+      }
+
+      setError("")
       closeDeleteModal()
     } catch (error) {
       setError(error instanceof Error ? error.message : "Failed to delete word")
@@ -310,7 +341,8 @@ export default function ReviewPage() {
     }
   }
 
-  if (loading) {
+  // Loading state
+  if (computedState === "LOADING") {
     return (
       <ProtectedRoute>
         <div className="min-h-screen bg-background flex items-center justify-center">
@@ -337,41 +369,14 @@ export default function ReviewPage() {
             Spaced repetition learning with the SM-2 algorithm
           </p>
 
-          {/* Mode Toggle Tabs */}
-          <div className="flex justify-center mt-6">
-            <div className="flex bg-muted rounded-lg p-1 gap-1">
-              <button
-                onClick={switchToReviewMode}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                  viewMode === "review"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                }`}
-              >
-                <Play className="h-4 w-4" />
-                Review Session
-              </button>
-              <button
-                onClick={switchToBrowseMode}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                  viewMode === "browse"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                }`}
-              >
-                <BookOpen className="h-4 w-4" />
-                Browse Vocabulary
-              </button>
-            </div>
-          </div>
+          <ModeToggle
+            viewMode={mode}
+            onSwitchToReview={switchToReviewMode}
+            onSwitchToBrowse={switchToBrowseMode}
+          />
         </div>
 
-        {error && (
-          <div className="text-destructive text-sm bg-destructive/10 p-3 rounded-md mb-6 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4" />
-            {error}
-          </div>
-        )}
+        <ErrorDisplay error={error} />
 
         {/* Review Stats */}
         <Card className="mb-6">
@@ -382,11 +387,10 @@ export default function ReviewPage() {
                 Session Progress
               </CardTitle>
 
-              {/* Priority Mode Toggle */}
               <PriorityModeSelector
                 selectedMode={selectedPriorityMode}
                 onModeChange={handlePriorityModeChange}
-                disabled={reviewStarted}
+                disabled={computedState === "REVIEWING"}
               />
             </div>
           </CardHeader>
@@ -399,147 +403,40 @@ export default function ReviewPage() {
           </CardContent>
         </Card>
 
-        {viewMode === "browse" ? (
-          // Browse Vocabulary View
-          <div className="space-y-4">
-            {browseLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Loading vocabulary...</p>
-              </div>
-            ) : (
-              <BrowseVocabulary
-                words={allWords}
-                onDeleteWord={openDeleteModal}
-                deletingWordId={deletingWordId}
-              />
-            )}
+        {/* State-based rendering */}
+        {browseLoading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading vocabulary...</p>
           </div>
-        ) : sessionComplete ? (
-          // Session Complete Screen
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-foreground mb-2">
-                  Session Complete!
-                </h3>
-                <p className="text-muted-foreground mb-6">
-                  You reviewed {reviewStats.completed} words. Great job!
-                </p>
-                <div className="space-y-3">
-                  {reviewStats.remaining > 0 ? (
-                    <Button
-                      onClick={startNewSession}
-                      className="w-full sm:w-auto"
-                    >
-                      Start New Session
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={reviewAllLearned}
-                      disabled={updatingWords}
-                      variant="outline"
-                      className="w-full sm:w-auto"
-                    >
-                      {updatingWords ? "Updating..." : "Review All Learned"}
-                    </Button>
-                  )}
-                  <div className="text-sm text-muted-foreground">
-                    <a href="/topic" className="text-primary hover:underline">
-                      Generate more vocabulary
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ) : !reviewStarted ? (
-          // Review Status Screen - shows before starting any session
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                {dueWords.length > 0 ? (
-                  <>
-                    <Clock className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-                    <h3 className="text-2xl font-bold text-foreground mb-2">
-                      Daily Review Available
-                    </h3>
-                    <p className="text-muted-foreground mb-6">
-                      You have {dueWords.length} word
-                      {dueWords.length !== 1 ? "s" : ""} ready for review
-                    </p>
-                    <Button
-                      onClick={startNewSession}
-                      className="w-full sm:w-auto"
-                    >
-                      Start Session
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-                    <h3 className="text-2xl font-bold text-foreground mb-2">
-                      Daily Session Done
-                    </h3>
-                    <p className="text-muted-foreground mb-6">
-                      No words are due for review right now. Great job!
-                    </p>
-                    <Button
-                      onClick={reviewAllLearned}
-                      disabled={updatingWords}
-                      variant="outline"
-                      className="w-full sm:w-auto"
-                    >
-                      {updatingWords ? "Updating..." : "Review All Learned"}
-                    </Button>
-                  </>
-                )}
-                <div className="text-sm text-muted-foreground mt-4">
-                  <a href="/topic" className="text-primary hover:underline">
-                    Generate more vocabulary
-                  </a>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {/* Active Review Card - only shown during active review */}
-        {viewMode === "review" &&
-        !sessionComplete &&
-        dueWords.length > 0 &&
-        reviewStarted ? (
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-lg">
-                    Word {currentWordIndex + 1} of {dueWords.length}
-                  </CardTitle>
-                  <Button
-                    onClick={quitSession}
-                    variant="outline"
-                    size="sm"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    Quit Session
-                  </Button>
-                </div>
-              </CardHeader>
-            </Card>
-            <ReviewSession
-              currentWord={dueWords[currentWordIndex]}
-              showAnswer={showAnswer}
-              onShowAnswer={() => setShowAnswer(true)}
-              onRating={handleRating}
-              submittingRating={submittingRating}
-            />
-          </div>
-        ) : null}
+        ) : mode === "browse" ? (
+          <BrowseVocabulary
+            words={allWords}
+            onDeleteWord={openDeleteModal}
+            deletingWordId={deletingWordId}
+          />
+        ) : computedState === "REVIEWING" ? (
+          <ActiveReviewCard
+            dueWords={dueWords}
+            currentWordIndex={currentWordIndex}
+            showAnswer={showAnswer}
+            submittingRating={submittingRating}
+            onShowAnswer={() => setShowAnswer(true)}
+            onRating={handleRating}
+            onQuitSession={quitSession}
+          />
+        ) : (
+          <ReviewStatus
+            state={computedState}
+            dueWords={dueWords}
+            reviewStats={reviewStats}
+            updatingWords={updatingWords}
+            onStartNewSession={startNewSession}
+            onReviewAllLearned={reviewAllLearned}
+          />
+        )}
       </div>
 
-      {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         open={deleteModalOpen}
         onOpenChange={setDeleteModalOpen}

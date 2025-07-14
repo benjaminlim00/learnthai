@@ -152,43 +152,67 @@ export const PUT = withAuthAndValidation(
 )
 
 // DELETE - Delete vocabulary word
-export const DELETE = withAuth(async (request: NextRequest, user: User) => {
-  try {
-    const validation = validateQueryParams(request, deleteVocabularySchema)
+export const DELETE = withAuthAndValidation(
+  async (
+    request: NextRequest,
+    user: User,
+    validatedData: { id?: string; word?: string }
+  ) => {
+    try {
+      const supabase = await createServerSupabaseClient(request)
+      let wordToDelete
 
-    if (!validation.success) {
-      return errorResponse(validation.error, 400)
+      if (validatedData.id) {
+        // Find word by ID (review page)
+        const { data: existingWord, error: fetchError } = await supabase
+          .from("vocabulary")
+          .select("id, user_id, word")
+          .eq("id", validatedData.id)
+          .single()
+
+        if (fetchError || !existingWord) {
+          return errorResponse("Vocabulary word not found", 404)
+        }
+
+        if (existingWord.user_id !== user.id) {
+          return errorResponse("Unauthorized", 403)
+        }
+
+        wordToDelete = existingWord
+      } else if (validatedData.word) {
+        // Find word by word text and user_id (topic page)
+        const { data: existingWord, error: fetchError } = await supabase
+          .from("vocabulary")
+          .select("id, user_id, word")
+          .eq("word", validatedData.word)
+          .eq("user_id", user.id)
+          .single()
+
+        if (fetchError || !existingWord) {
+          return errorResponse("Vocabulary word not found", 404)
+        }
+
+        wordToDelete = existingWord
+      } else {
+        return errorResponse("Either id or word must be provided", 400)
+      }
+
+      // Delete the word
+      const { error } = await supabase
+        .from("vocabulary")
+        .delete()
+        .eq("id", wordToDelete.id)
+
+      if (error) {
+        console.error("Error deleting vocabulary:", error)
+        return errorResponse("Failed to delete vocabulary", 500)
+      }
+
+      return successResponse({ success: true })
+    } catch (error) {
+      console.error("Error in vocabulary DELETE:", error)
+      return errorResponse("Internal server error", 500)
     }
-
-    const { id } = validation.data
-    const supabase = await createServerSupabaseClient(request)
-
-    // First, verify the vocabulary belongs to the user
-    const { data: existingWord, error: fetchError } = await supabase
-      .from("vocabulary")
-      .select("user_id")
-      .eq("id", id)
-      .single()
-
-    if (fetchError || !existingWord) {
-      return errorResponse("Vocabulary word not found", 404)
-    }
-
-    if (existingWord.user_id !== user.id) {
-      return errorResponse("Unauthorized", 403)
-    }
-
-    // Delete the word
-    const { error } = await supabase.from("vocabulary").delete().eq("id", id)
-
-    if (error) {
-      console.error("Error deleting vocabulary:", error)
-      return errorResponse("Failed to delete vocabulary", 500)
-    }
-
-    return successResponse({ success: true })
-  } catch (error) {
-    console.error("Error in vocabulary DELETE:", error)
-    return errorResponse("Internal server error", 500)
-  }
-})
+  },
+  deleteVocabularySchema
+)
