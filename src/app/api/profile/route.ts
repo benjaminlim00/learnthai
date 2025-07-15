@@ -35,7 +35,13 @@ const getProfileHandler = async (request: NextRequest, user: User) => {
       return errorResponse("Profile not found", 404)
     }
 
-    const profile: UserProfile = data[0]
+    const profile: UserProfile = {
+      id: data[0].profile_id,
+      user_id: data[0].profile_user_id,
+      speaker_preference: data[0].speaker_preference,
+      created_at: data[0].created_at,
+      updated_at: data[0].updated_at,
+    }
     return successResponse({ profile })
   } catch (error) {
     console.error("Error in getProfileHandler:", error)
@@ -72,7 +78,13 @@ const updateProfileHandler = withAuthAndValidation(
         return errorResponse("Failed to update profile", 500)
       }
 
-      const updatedProfile: UserProfile = data[0]
+      const updatedProfile: UserProfile = {
+        id: data[0].profile_id,
+        user_id: data[0].profile_user_id,
+        speaker_preference: data[0].speaker_preference,
+        created_at: data[0].created_at || new Date().toISOString(),
+        updated_at: data[0].updated_at,
+      }
       return successResponse({
         profile: updatedProfile,
         message: "Profile updated successfully",

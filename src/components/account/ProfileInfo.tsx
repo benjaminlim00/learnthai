@@ -123,7 +123,7 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
               <div className="space-y-1 mt-1">
                 <div className="flex items-center gap-2">
                   <Select
-                    value={selectedSpeaker || "Not set"}
+                    value={selectedSpeaker}
                     onValueChange={setSelectedSpeaker}
                   >
                     <SelectTrigger className="w-24 h-6 text-xs">

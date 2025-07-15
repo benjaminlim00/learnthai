@@ -69,6 +69,22 @@ CREATE TABLE pronunciation_sessions (
 );
 
 -- ============================================================================
+-- INDEXES
+-- ============================================================================
+
+-- Performance indexes
+CREATE INDEX idx_vocabulary_user_review ON vocabulary(user_id, next_review);
+CREATE INDEX idx_vocabulary_status ON vocabulary(status);
+CREATE INDEX idx_vocabulary_user_status ON vocabulary(user_id, status);
+CREATE INDEX idx_cached_audio_hash ON cached_audio(text_hash);
+CREATE INDEX idx_cached_audio_voice ON cached_audio(voice_name);
+CREATE INDEX idx_cached_audio_type ON cached_audio(audio_type, content_type);
+CREATE INDEX idx_generation_logs_user_date ON generation_logs(user_id, created_at);
+CREATE INDEX idx_pronunciation_user ON pronunciation_sessions(user_id);
+CREATE INDEX idx_pronunciation_vocab ON pronunciation_sessions(vocabulary_id);
+CREATE INDEX idx_pronunciation_user_created ON pronunciation_sessions(user_id, created_at);
+
+-- ============================================================================
 -- ROW LEVEL SECURITY
 -- ============================================================================
 
@@ -92,35 +108,18 @@ END $$;
 CREATE POLICY "cached_audio_access" ON cached_audio FOR ALL USING (true);
 
 -- ============================================================================
--- INDEXES
--- ============================================================================
-
--- Performance indexes
-CREATE INDEX idx_vocabulary_user_review ON vocabulary(user_id, next_review);
-CREATE INDEX idx_vocabulary_status ON vocabulary(status);
-CREATE INDEX idx_cached_audio_hash ON cached_audio(text_hash);
-CREATE INDEX idx_cached_audio_voice ON cached_audio(voice_name);
-CREATE INDEX idx_generation_logs_user_date ON generation_logs(user_id, created_at);
-CREATE INDEX idx_pronunciation_user ON pronunciation_sessions(user_id);
-CREATE INDEX idx_pronunciation_vocab ON pronunciation_sessions(vocabulary_id);
-
--- ============================================================================
 -- STORAGE SETUP
 -- ============================================================================
 
 -- Create storage buckets
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES 
-  ('audio-cache', 'audio-cache', false, 52428800, ARRAY['audio/webm', 'audio/mp3', 'audio/wav', 'audio/mpeg', 'audio/mp4']),
-  ('user-recordings', 'user-recordings', false, 10485760, ARRAY['audio/webm', 'audio/mp3', 'audio/wav', 'audio/mpeg'])
+  ('audio-cache', 'audio-cache', false, 52428800, ARRAY['audio/webm', 'audio/mp3', 'audio/wav', 'audio/mpeg', 'audio/mp4'])
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage policies
 CREATE POLICY "audio_cache_read" ON storage.objects FOR SELECT USING (bucket_id = 'audio-cache');
 CREATE POLICY "audio_cache_write" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'audio-cache' AND auth.role() = 'authenticated');
-CREATE POLICY "user_recordings_access" ON storage.objects FOR ALL USING (
-  bucket_id = 'user-recordings' AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text
-);
 
 -- ============================================================================
 -- FUNCTIONS
@@ -142,10 +141,10 @@ END $$;
 
 -- Core application functions
 CREATE OR REPLACE FUNCTION get_or_create_user_profile(user_uuid UUID)
-RETURNS TABLE(id UUID, user_id UUID, speaker_preference TEXT, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ) AS $$
+RETURNS TABLE(profile_id UUID, profile_user_id UUID, speaker_preference TEXT, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ) AS $$
 DECLARE profile_record user_profiles%ROWTYPE;
 BEGIN
-  SELECT * INTO profile_record FROM user_profiles WHERE user_profiles.user_id = user_uuid;
+  SELECT * INTO profile_record FROM user_profiles p WHERE p.user_id = user_uuid;
   IF NOT FOUND THEN
     INSERT INTO user_profiles (user_id) VALUES (user_uuid) RETURNING * INTO profile_record;
   END IF;
@@ -154,11 +153,14 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION update_user_speaker_preference(user_uuid UUID, new_speaker_preference TEXT)
-RETURNS TABLE(id UUID, user_id UUID, speaker_preference TEXT, updated_at TIMESTAMPTZ) AS $$
+RETURNS TABLE(profile_id UUID, profile_user_id UUID, speaker_preference TEXT, updated_at TIMESTAMPTZ) AS $$
 BEGIN
   INSERT INTO user_profiles (user_id, speaker_preference) VALUES (user_uuid, new_speaker_preference)
-  ON CONFLICT (user_id) DO UPDATE SET speaker_preference = EXCLUDED.speaker_preference, updated_at = NOW();
-  RETURN QUERY SELECT up.id, up.user_id, up.speaker_preference, up.updated_at FROM user_profiles up WHERE up.user_id = user_uuid;
+  ON CONFLICT (user_id) DO UPDATE SET 
+    speaker_preference = EXCLUDED.speaker_preference, 
+    updated_at = NOW();
+  RETURN QUERY SELECT p.id, p.user_id, p.speaker_preference, p.updated_at 
+    FROM user_profiles p WHERE p.user_id = user_uuid;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
