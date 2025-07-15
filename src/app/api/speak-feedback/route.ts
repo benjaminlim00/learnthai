@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     // Convert audio file to transcription using Whisper
     const transcriptionResponse = await openai.audio.transcriptions.create({
       file: audioFile,
-      model: "whisper-1",
+      model: "gpt-4o-mini-transcribe",
       language: "th", // Thai language
     })
 
