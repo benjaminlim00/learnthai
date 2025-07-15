@@ -29,7 +29,9 @@ const STORAGE_KEY = "learnthai-vocabulary-history"
 const MAX_HISTORY = 10
 
 export default function TopicPage() {
+  const [mode, setMode] = useState<"topic" | "single">("topic")
   const [topic, setTopic] = useState("")
+  const [word, setWord] = useState("")
   const [loading, setLoading] = useState(false)
   const [vocabWords, setVocabWords] = useState<GPTVocabularyWord[]>([])
   const [error, setError] = useState("")
@@ -45,8 +47,9 @@ export default function TopicPage() {
 
   const { user } = useAuth()
 
-  const characterCount = topic.length
-  const CHARACTER_LIMIT = 200
+  const currentInput = mode === "topic" ? topic : word
+  const characterCount = currentInput.length
+  const CHARACTER_LIMIT = mode === "topic" ? 200 : 100
   const remainingGenerations = usageStats.dailyLimit - usageStats.dailyUsed
 
   // Load history from localStorage on component mount
@@ -88,6 +91,14 @@ export default function TopicPage() {
     }
   }
 
+  const handleWordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    if (value.length <= CHARACTER_LIMIT) {
+      setWord(value)
+      setError("")
+    }
+  }
+
   // Save vocabulary result to history
   const saveToHistory = (
     result: Omit<VocabularyResult, "id" | "timestamp">
@@ -111,7 +122,16 @@ export default function TopicPage() {
 
   // Load vocabulary from history
   const loadFromHistory = (result: VocabularyResult) => {
-    setTopic(result.topic)
+    // Check if this is a single word entry
+    if (result.topic.startsWith("Single word: ")) {
+      setMode("single")
+      setWord(result.topic.replace("Single word: ", ""))
+      setTopic("")
+    } else {
+      setMode("topic")
+      setTopic(result.topic)
+      setWord("")
+    }
     setVocabWords(result.vocabWords)
     setError("")
     setShowHistory(false)
@@ -122,8 +142,11 @@ export default function TopicPage() {
   const generateVocab = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!topic.trim()) {
-      setError("Please enter a topic")
+    const inputValue = mode === "topic" ? topic.trim() : word.trim()
+    const inputLabel = mode === "topic" ? "topic" : "word"
+
+    if (!inputValue) {
+      setError(`Please enter a ${inputLabel}`)
       return
     }
 
@@ -141,14 +164,17 @@ export default function TopicPage() {
     setSavedWords(new Set())
 
     try {
+      const requestBody = {
+        mode,
+        ...(mode === "topic" ? { topic: inputValue } : { word: inputValue }),
+      }
+
       const response = await fetch("/api/generate-vocab", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          topic: topic.trim(),
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       const data = await response.json()
@@ -162,7 +188,7 @@ export default function TopicPage() {
 
       // Save to history
       saveToHistory({
-        topic: topic.trim(),
+        topic: mode === "topic" ? inputValue : `Single word: ${inputValue}`,
         vocabWords: data.vocabWords,
       })
     } catch (error) {
@@ -260,8 +286,9 @@ export default function TopicPage() {
             </h1>
           </div>
           <p className="text-muted-foreground">
-            Enter a topic and get AI-generated Thai vocabulary words with
-            English translations and example sentences.
+            Generate vocabulary by topic or convert specific words into complete
+            Thai vocabulary entries with translations, romanization, and example
+            sentences.
           </p>
         </div>
 
@@ -313,20 +340,71 @@ export default function TopicPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={generateVocab} className="space-y-4">
+                {/* Mode Selection */}
                 <div className="space-y-2">
-                  <Label htmlFor="topic">Topic</Label>
-                  <textarea
-                    id="topic"
-                    value={topic}
-                    onChange={handleTopicChange}
-                    placeholder="e.g., food, travel, family, daily activities..."
-                    className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[100px] resize-y"
-                    disabled={loading || remainingGenerations <= 0}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    {characterCount} / {CHARACTER_LIMIT} characters
+                  <Label>Generation Mode</Label>
+                  <div className="flex gap-1 p-1 bg-muted rounded-lg">
+                    <Button
+                      type="button"
+                      variant={mode === "topic" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setMode("topic")}
+                      disabled={loading || remainingGenerations <= 0}
+                      className="flex-1"
+                    >
+                      Topic Generation
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={mode === "single" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setMode("single")}
+                      disabled={loading || remainingGenerations <= 0}
+                      className="flex-1"
+                    >
+                      Single Word
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {mode === "topic"
+                      ? "Generate multiple vocabulary words for a specific topic"
+                      : "Convert a specific word (English or Thai) into a complete vocabulary entry"}
                   </p>
                 </div>
+
+                {/* Conditional Input Fields */}
+                {mode === "topic" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="topic">Topic</Label>
+                    <textarea
+                      id="topic"
+                      value={topic}
+                      onChange={handleTopicChange}
+                      placeholder="e.g., food, travel, family, daily activities..."
+                      className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[100px] resize-y"
+                      disabled={loading || remainingGenerations <= 0}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      {characterCount} / {CHARACTER_LIMIT} characters
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="word">Word</Label>
+                    <input
+                      id="word"
+                      type="text"
+                      value={word}
+                      onChange={handleWordChange}
+                      placeholder="Enter a word in English or Thai..."
+                      className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={loading || remainingGenerations <= 0}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      {characterCount} / {CHARACTER_LIMIT} characters
+                    </p>
+                  </div>
+                )}
 
                 {error && (
                   <div className="text-destructive text-sm bg-destructive/10 p-3 rounded-md">
@@ -337,7 +415,7 @@ export default function TopicPage() {
                 <Button
                   type="submit"
                   disabled={
-                    loading || !topic.trim() || remainingGenerations <= 0
+                    loading || !currentInput.trim() || remainingGenerations <= 0
                   }
                   className="w-full"
                 >
@@ -346,8 +424,10 @@ export default function TopicPage() {
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                       Generating...
                     </>
-                  ) : (
+                  ) : mode === "topic" ? (
                     "Generate Thai Vocabulary"
+                  ) : (
+                    "Convert Word to Thai Vocabulary"
                   )}
                 </Button>
               </form>

@@ -1,8 +1,32 @@
 import { z } from "zod"
 
-export const generateVocabSchema = z.object({
-  topic: z.string().min(1, "Topic is required").max(200, "Topic too long"),
-})
+export const generateVocabSchema = z
+  .object({
+    mode: z.enum(["topic", "single"], {
+      required_error: "Mode is required",
+    }),
+    topic: z.string().optional(),
+    word: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.mode === "topic") {
+        return (
+          data.topic && data.topic.trim().length > 0 && data.topic.length <= 200
+        )
+      }
+      if (data.mode === "single") {
+        return (
+          data.word && data.word.trim().length > 0 && data.word.length <= 100
+        )
+      }
+      return false
+    },
+    {
+      message:
+        "Topic is required for topic mode, word is required for single mode",
+    }
+  )
 
 export type GenerateVocabInput = z.infer<typeof generateVocabSchema>
 
