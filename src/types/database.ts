@@ -21,20 +21,18 @@ export interface VocabularyWord {
   updated_at: string
 }
 
-// Remove the old GPTVocabularyResponse interface - now using Zod types
-// export interface GPTVocabularyResponse {
-//   word: string
-//   word_romanization: string
-//   translation: string
-//   sentence: string
-//   sentence_romanization: string
-//   sentence_translation: string
-// }
-
 export interface User {
   id: string
   email: string
   created_at: string
+}
+
+export interface UserProfile {
+  id: string
+  user_id: string
+  speaker_preference: "male" | "female"
+  created_at: string
+  updated_at: string
 }
 
 // Spaced repetition rating scale (0-5)

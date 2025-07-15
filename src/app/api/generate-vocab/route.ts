@@ -89,11 +89,37 @@ const generateVocabHandler = withAuthAndValidation(
         learnedWordsList = []
       }
 
+      // Get user's speaker preference for context
+      let userSpeaker = "female" // Default to female
+      try {
+        const { data: profileData, error: profileError } = await supabase.rpc(
+          "get_or_create_user_profile",
+          {
+            user_uuid: user.id,
+          }
+        )
+
+        if (!profileError && profileData && profileData.length > 0) {
+          userSpeaker = profileData[0].speaker_preference
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error)
+        // Continue with default speaker preference if profile fetch fails
+      }
+
+      // Create speaker context for prompts
+      const speakerContext =
+        userSpeaker === "male"
+          ? "The learner prefers male speaker examples, so use examples that would be natural for a male speaker to say in Thai."
+          : "The learner prefers female speaker examples, so use examples that would be natural for a female speaker to say in Thai."
+
       const systemPrompt = `You are a friendly Thai language learning assistant.
 
 Generate Thai vocabulary with accurate romanization and everyday example sentences that sound like how real people speak.
 
 Use a consistent romanization system similar to the Royal Thai General System of Transcription.
+
+${speakerContext}
 
 Respond with valid JSON only, using the exact schema provided.`
 
@@ -114,11 +140,11 @@ Each word should include:
 1. The Thai word
 2. Romanized pronunciation
 3. English translation
-4. A casual, natural Thai example sentence (like something you'd say in everyday conversation)
+4. A casual, natural Thai example sentence (like something you'd say in everyday conversation, appropriate for a ${userSpeaker} speaker)
 5. Romanized pronunciation of the sentence
 6. English translation of the sentence
 
-Use a friendly, informal tone — like something you'd say to a friend, not formal or textbook Thai.
+Use a friendly, informal tone — like something you'd say to a friend, not formal or textbook Thai. Make sure the examples sound natural for a ${userSpeaker} speaker.
 
 Respond with a JSON object containing a "vocabulary" array with exactly this structure:
 {
@@ -137,25 +163,17 @@ Respond with a JSON object containing a "vocabulary" array with exactly this str
         // Single word mode
         userPrompt = `Convert this word into a complete Thai vocabulary entry: "${word}"
 
-${
-  learnedWordsList.length > 0
-    ? `User has already learned these words, so if this is one of them, please still provide the entry: ${learnedWordsList.join(
-        ", "
-      )}`
-    : ""
-}
-
 If the input is in English, provide the Thai translation. If the input is in Thai, provide the English translation and proper romanization.
 
 The entry should include:
 1. The Thai word
 2. Romanized pronunciation 
 3. English translation
-4. A casual, natural Thai example sentence using this word (like something you'd say in everyday conversation)
+4. A casual, natural Thai example sentence using this word (like something you'd say in everyday conversation, appropriate for a ${userSpeaker} speaker)
 5. Romanized pronunciation of the sentence
 6. English translation of the sentence
 
-Use a friendly, informal tone — like something you'd say to a friend, not formal or textbook Thai.
+Use a friendly, informal tone — like something you'd say to a friend, not formal or textbook Thai. Make sure the example sounds natural for a ${userSpeaker} speaker.
 
 Respond with a JSON object containing a "vocabulary" array with exactly ONE entry using this structure:
 {
@@ -220,21 +238,12 @@ Respond with a JSON object containing a "vocabulary" array with exactly ONE entr
 
       // Store generation log
       try {
-        const vocabularyItems = vocabWords.map((word) => ({
-          word: word.word,
-          word_romanization: word.word_romanization,
-          translation: word.translation,
-          sentence: word.sentence,
-          sentence_romanization: word.sentence_romanization,
-          sentence_translation: word.sentence_translation,
-        }))
-
         const { error: logError } = await supabase
           .from("generation_logs")
           .insert({
             user_id: user.id,
             input_topic: mode === "topic" ? topic : `Single word: ${word}`,
-            vocabulary_response: vocabularyItems,
+            vocabulary_response: vocabWords,
           })
 
         if (logError) {

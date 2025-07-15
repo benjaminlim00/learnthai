@@ -7,6 +7,7 @@ import {
   getAudioFromStorage,
 } from "@/lib/audio-cache"
 import { env } from "@/lib/env"
+import { getThaiVoiceFromSpeakerPreference } from "@/lib/voice-utils"
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,7 +52,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const voice = "th-TH-PremwadeeNeural" // Thai female voice
+    // Get user session for voice selection
+    const { createServerSupabaseClient } = await import("@/lib/supabase")
+    const supabase = await createServerSupabaseClient(request)
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    // Get user's voice based on speaker preference
+    let voice = "th-TH-PremwadeeNeural" // Default to female voice
+
+    if (user && !authError) {
+      try {
+        const { data: profileData, error: profileError } = await supabase.rpc(
+          "get_or_create_user_profile",
+          {
+            user_uuid: user.id,
+          }
+        )
+
+        if (!profileError && profileData && profileData.length > 0) {
+          const speakerPreference = profileData[0].speaker_preference
+          voice = getThaiVoiceFromSpeakerPreference(speakerPreference)
+        }
+      } catch (error) {
+        console.error("Error fetching user profile for voice selection:", error)
+        // Continue with default voice if profile fetch fails
+      }
+    }
+
     const speed = 0.8 // 20% slower for better pronunciation learning
 
     // Only cache reference audio (words and sentences), not user transcriptions
