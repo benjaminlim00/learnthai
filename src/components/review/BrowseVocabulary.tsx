@@ -6,6 +6,7 @@ import {
   getEaseStars,
   formatInterval,
 } from "@/lib/spaced-repetition"
+import { AudioButton } from "@/components/shared/AudioButton"
 import { Trash2 } from "lucide-react"
 
 interface BrowseVocabularyProps {
@@ -38,6 +39,11 @@ export function BrowseVocabulary({
                   <h3 className="text-lg font-semibold text-foreground">
                     {word.word}
                   </h3>
+                  <AudioButton
+                    text={word.word}
+                    contentType="word"
+                    size="icon"
+                  />
                   {word.word_romanization && (
                     <span className="text-muted-foreground text-sm">
                       ({word.word_romanization})
@@ -96,7 +102,14 @@ export function BrowseVocabulary({
               <div>
                 <span className="font-medium text-foreground">Example:</span>
                 <div className="mt-1 space-y-1">
-                  <div className="text-foreground">{word.sentence}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-foreground">{word.sentence}</div>
+                    <AudioButton
+                      text={word.sentence}
+                      contentType="sentence"
+                      size="icon"
+                    />
+                  </div>
                   {word.sentence_romanization && (
                     <div className="text-sm text-muted-foreground italic">
                       {word.sentence_romanization}

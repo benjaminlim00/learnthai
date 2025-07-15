@@ -14,6 +14,7 @@ import {
   Languages,
   RotateCcw,
   User,
+  Mic,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -44,6 +45,7 @@ const navItems: NavItem[] = [
   { href: "/topic", label: "Generate", icon: BookOpen },
   { href: "/translate", label: "Translate", icon: Languages },
   { href: "/review", label: "Review", icon: RotateCcw },
+  { href: "/speak", label: "Speak", icon: Mic },
   { href: "/account", label: "Account", icon: User },
 ]
 

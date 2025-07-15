@@ -101,6 +101,15 @@ Open [http://localhost:3000](http://localhost:3000) 🎉
 - **Progress Tracking**: Visual difficulty indicators with 1-5 star ratings and color coding
 - **Flexible Review Modes**: Smart Priority (difficulty-based) vs Time-based (chronological)
 
+### 🎤 **AI-Powered Speaking Practice**
+
+- **Pronunciation Analysis**: AI-powered feedback on your Thai pronunciation using speech recognition
+- **Audio Comparison**: Side-by-side comparison of your pronunciation vs. correct pronunciation
+- **TTS Integration**: High-quality text-to-speech for reference pronunciation using OpenAI TTS
+- **Guided Practice Flow**: Step-by-step workflow from vocabulary selection to feedback analysis
+- **Smart Audio Caching**: Efficient audio storage system with reference audio caching for cost optimization
+- **Practice Mode Selection**: Choose between practicing individual words or full example sentences
+
 ### 🎯 **Multi-Modal Learning**
 
 - **Topic-Based Generation**: Learn vocabulary organized by real-world contexts
@@ -141,6 +150,9 @@ Open [http://localhost:3000](http://localhost:3000) 🎉
 - **Authentication**: Supabase Auth with SSR support
 - **API**: Next.js API Routes with middleware
 - **AI Integration**: OpenAI GPT-4o for vocabulary generation and translation
+- **TTS System**: OpenAI TTS with intelligent audio caching
+- **Audio Storage**: Supabase Storage with dual-bucket architecture (cached TTS + user recordings)
+- **Speech Recognition**: Browser Web Speech API integration
 - **Rate Limiting**: Upstash Redis for API protection
 - **Validation**: Zod schemas for type-safe data validation
 
@@ -160,16 +172,24 @@ LearnThaiAI Platform
 │   ├── Vocabulary Management (CRUD)
 │   ├── AI Generation (GPT-4o)
 │   ├── Translation Service
+│   ├── Speaking Practice Engine
+│   │   ├── Audio Processing (Speech Recognition)
+│   │   ├── TTS Generation (OpenAI TTS)
+│   │   ├── Pronunciation Analysis (AI Feedback)
+│   │   └── Audio Storage (Supabase Storage)
 │   └── Spaced Repetition Engine
 ├── Frontend (Next.js + TypeScript)
 │   ├── Topic Generation Page
 │   ├── Review System (SM-2)
+│   ├── Speaking Practice Flow
 │   ├── Translation Tool
 │   ├── Browse & Manage
 │   └── Account Dashboard
 └── Database (Supabase PostgreSQL)
     ├── User Management
     ├── Vocabulary Storage
+    ├── Audio Cache Management
+    ├── Pronunciation Sessions
     └── Learning Analytics
 ```
 
@@ -182,12 +202,15 @@ learnthai/
 │   │   ├── api/                      # Backend API routes
 │   │   │   ├── generate-vocab/       # GPT-4o vocabulary generation
 │   │   │   ├── translate/            # Translation service
+│   │   │   ├── speak-feedback/       # AI pronunciation analysis
+│   │   │   ├── speak-tts/            # Text-to-speech generation
 │   │   │   └── vocabulary/           # CRUD + spaced repetition
 │   │   │       ├── due/              # Smart review scheduling
 │   │   │       └── rate/             # SM-2 algorithm updates
 │   │   ├── auth/callback/            # Supabase auth callback
 │   │   ├── topic/                    # AI vocabulary generation
 │   │   ├── translate/                # Translation tool
+│   │   ├── speak/                    # Speaking practice interface
 │   │   ├── review/                   # Spaced repetition system
 │   │   ├── account/                  # User dashboard
 │   │   ├── globals.css               # Global styles + theme variables
@@ -199,9 +222,14 @@ learnthai/
 │   │   │   ├── PriorityModeSelector.tsx
 │   │   │   ├── ReviewSession.tsx
 │   │   │   └── SessionStats.tsx
+│   │   ├── speak/                    # Speaking practice components
+│   │   │   ├── Recorder.tsx          # Audio recording interface
+│   │   │   ├── FeedbackCard.tsx      # AI feedback display
+│   │   │   └── index.ts              # Component exports
 │   │   ├── shared/                   # Cross-page components
 │   │   │   ├── ProtectedRoute.tsx
 │   │   │   ├── SidebarLayout.tsx
+│   │   │   ├── AudioButton.tsx       # TTS playback component
 │   │   │   ├── theme-provider.tsx
 │   │   │   └── theme-toggle.tsx
 │   │   ├── topic/                    # Topic page components
@@ -210,6 +238,7 @@ learnthai/
 │   ├── contexts/                     # React contexts
 │   │   └── AuthContext.tsx           # Authentication state
 │   ├── lib/                          # Core utilities
+│   │   ├── audio-cache.ts            # TTS audio caching system
 │   │   ├── middleware.ts             # API middleware & auth
 │   │   ├── rate-limit.ts             # Redis rate limiting
 │   │   ├── spaced-repetition.ts      # SM-2 algorithm
@@ -219,7 +248,7 @@ learnthai/
 │   └── types/                        # TypeScript definitions
 │       └── database.ts               # Database types
 ├── public/                           # Static assets
-├── supabase-setup.sql                # Database schema
+├── supabase-setup.sql                # Database schema + storage setup
 ├── components.json                   # shadcn/ui config
 ├── tailwind.config.js                # Tailwind configuration
 └── package.json                      # Dependencies
@@ -243,21 +272,25 @@ learnthai/
 - **Visual Progress**: Star ratings and color-coded difficulty
 - **Session Management**: Progress tracking with quit/resume
 
-### 3. **Translation Tool** (`/translate`)
+### 3. **AI-Powered Speaking Practice** (`/speak`)
+
+- **Guided 4-Step Process**:
+  1. Choose vocabulary from your saved words
+  2. Listen to correct pronunciation and select practice mode (word/sentence)
+  3. Record your pronunciation attempt
+  4. Receive AI-powered feedback with audio comparison
+- **Pronunciation Analysis**: AI analyzes your speech and provides specific feedback on mistakes
+- **Audio Comparison**: Compare your recording with the correct pronunciation using the same TTS voice
+- **Smart Caching**: Reference pronunciations are cached for instant playback and cost optimization
+- **Practice Modes**: Choose between practicing individual words or complete example sentences
+
+### 4. **Translation Tool** (`/translate`)
 
 - Bidirectional Thai ↔ English translation
 - Romanization for Thai text
 - Translation history with persistence
 - Sample texts for quick testing
 - Direction swapping with one click
-
-### 4. **Vocabulary Management** (`/review` browse mode)
-
-- Browse all saved vocabulary
-- Filter by status (new/learning/mastered)
-- Delete words with progress loss warning
-- Difficulty visualization with stars
-- Next review date tracking
 
 ### 5. **Account Dashboard** (`/account`)
 

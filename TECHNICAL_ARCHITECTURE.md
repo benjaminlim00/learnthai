@@ -23,20 +23,23 @@ This document provides comprehensive technical documentation for developers, arc
 │ • TailwindCSS 3.4 (Utility-first styling)   │
 │ • shadcn/ui + Radix UI (Accessible components) │
 │ • next-themes (Theme management)             │
+│ • Web Speech API (Speech recognition)        │
+│ • MediaRecorder API (Audio recording)       │
 └─────────────────────────────────────────────┘
 
 ┌─ Backend (Server-Side) ──────────────────────┐
 │ • Next.js API Routes (Serverless functions)  │
-│ • Supabase (PostgreSQL + Auth + RLS)         │
+│ • Supabase (PostgreSQL + Auth + RLS + Storage) │
 │ • OpenAI GPT-4o (AI language generation)     │
+│ • OpenAI TTS (Text-to-speech synthesis)      │
 │ • Upstash Redis (Rate limiting & caching)    │
 │ • Zod (Runtime schema validation)            │
 └─────────────────────────────────────────────┘
 
 ┌─ Infrastructure ─────────────────────────────┐
 │ • Vercel (Hosting + CDN + Edge Functions)    │
-│ • Supabase Cloud (Managed database)          │
-│ • OpenAI API (Language model service)        │
+│ • Supabase Cloud (Managed database + storage) │
+│ • OpenAI API (Language model + TTS service)  │
 │ • Upstash (Global Redis cache)               │
 └─────────────────────────────────────────────┘
 ```
@@ -54,16 +57,25 @@ graph TB
     D --> E[Vocabulary API]
     D --> F[AI Generation API]
     D --> G[Translation API]
+    D --> H[Speaking Practice API]
 
-    E --> H[Supabase Database]
-    F --> I[OpenAI GPT-4o]
-    G --> I
+    E --> I[Supabase Database]
+    F --> J[OpenAI GPT-4o]
+    G --> J
+    H --> K[TTS Generation]
+    H --> L[Speech Recognition]
+    H --> M[Audio Storage]
+    H --> N[Pronunciation Analysis]
 
-    D --> J[Rate Limiting]
-    J --> K[Upstash Redis]
+    K --> J
+    M --> O[Supabase Storage]
+    N --> J
 
-    H --> L[Row Level Security]
-    L --> M[User Data Isolation]
+    D --> P[Rate Limiting]
+    P --> Q[Upstash Redis]
+
+    I --> R[Row Level Security]
+    R --> S[User Data Isolation]
 ```
 
 ### **Data Flow Architecture**
@@ -107,10 +119,39 @@ CREATE TABLE vocabulary (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- TTS Audio caching system
+CREATE TABLE cached_audio (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  text_hash TEXT UNIQUE NOT NULL,
+  text_content TEXT NOT NULL,
+  voice_name TEXT NOT NULL,
+  audio_type TEXT NOT NULL DEFAULT 'reference' CHECK (audio_type IN ('reference', 'user')),
+  content_type TEXT NOT NULL DEFAULT 'sentence' CHECK (content_type IN ('word', 'sentence')),
+  storage_path TEXT NOT NULL,
+  file_size INTEGER NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Speaking practice sessions tracking
+CREATE TABLE pronunciation_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  vocabulary_id UUID REFERENCES vocabulary(id) ON DELETE CASCADE,
+  practice_mode TEXT NOT NULL CHECK (practice_mode IN ('word', 'sentence')),
+  target_text TEXT NOT NULL,
+  transcribed_text TEXT,
+  feedback_data JSONB,
+  score INTEGER CHECK (score >= 0 AND score <= 100),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Performance optimization indexes
 CREATE INDEX idx_vocabulary_user_review ON vocabulary(user_id, next_review);
 CREATE INDEX idx_vocabulary_status ON vocabulary(user_id, status);
 CREATE INDEX idx_vocabulary_created ON vocabulary(user_id, created_at DESC);
+CREATE INDEX idx_cached_audio_text_hash ON cached_audio(text_hash);
+CREATE INDEX idx_cached_audio_type ON cached_audio(audio_type, content_type);
+CREATE INDEX idx_pronunciation_sessions_user_id ON pronunciation_sessions(user_id);
 ```
 
 ### **Row Level Security (RLS)**
@@ -122,6 +163,32 @@ CREATE POLICY "Users can only access own vocabulary" ON vocabulary
 
 -- Prevent data leakage between users
 ALTER TABLE vocabulary ENABLE ROW LEVEL SECURITY;
+```
+
+### **Audio Storage Architecture**
+
+```sql
+-- Dual bucket strategy for audio files
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES
+  -- Shared TTS cache (reference audio)
+  ('audio-cache', 'audio-cache', false, 52428800,
+   ARRAY['audio/webm', 'audio/mp3', 'audio/wav', 'audio/mpeg', 'audio/mp4']),
+
+  -- User-specific recordings (temporary)
+  ('user-recordings', 'user-recordings', false, 10485760,
+   ARRAY['audio/webm', 'audio/mp3', 'audio/wav', 'audio/mpeg']);
+
+-- Storage RLS policies for secure access
+CREATE POLICY "authenticated_read_cached_audio" ON storage.objects
+FOR SELECT USING (bucket_id = 'audio-cache' AND auth.role() = 'authenticated');
+
+CREATE POLICY "user_read_own_recordings" ON storage.objects
+FOR SELECT USING (
+  bucket_id = 'user-recordings' AND
+  auth.role() = 'authenticated' AND
+  (storage.foldername(name))[1] = auth.uid()::text
+);
 ```
 
 ## 🧠 AI Integration Architecture
@@ -290,6 +357,260 @@ interface PriorityScore {
     return Math.min(100, Math.round(priority));
   }
 }
+```
+
+## 🎤 Speaking Practice System Architecture
+
+### **TTS Audio Caching System**
+
+```typescript
+interface AudioCacheSystem {
+  // Cache key generation
+  generateCacheKey(text: string, audioType: 'reference' | 'user', contentType: 'word' | 'sentence'): string;
+
+  // Cache management
+  getCachedAudio(cacheKey: string): Promise<Buffer | null>;
+  setCachedAudio(cacheKey: string, audioBuffer: Buffer, metadata: AudioMetadata): Promise<void>;
+
+  // Cost optimization strategy
+  interface CostStrategy {
+    referenceAudio: 'cache'; // Always cache reference pronunciations
+    userTranscriptions: 'never_cache'; // Never cache user-generated content
+    maxCacheAge: 30; // days
+    compression: 'webm'; // Efficient codec
+  }
+}
+
+// Implementation example
+class AudioCacheManager {
+  async generateTTS(
+    text: string,
+    audioType: 'reference' | 'user',
+    contentType: 'word' | 'sentence'
+  ): Promise<Buffer> {
+    const cacheKey = this.generateCacheKey(text, audioType, contentType);
+
+    // Only check cache for reference audio
+    if (audioType === 'reference') {
+      const cached = await this.getCachedAudio(cacheKey);
+      if (cached) return cached;
+    }
+
+    // Generate new audio via OpenAI TTS
+    const audioBuffer = await this.generateWithOpenAI(text);
+
+    // Cache reference audio only
+    if (audioType === 'reference') {
+      await this.setCachedAudio(cacheKey, audioBuffer, {
+        text,
+        audioType,
+        contentType,
+        voiceName: 'nova'
+      });
+    }
+
+    return audioBuffer;
+  }
+}
+```
+
+### **Speech Recognition Pipeline**
+
+```typescript
+interface SpeechRecognitionPipeline {
+  // Browser-based speech recognition
+  recordAudio(): Promise<Blob>
+  transcribeAudio(audioBlob: Blob): Promise<string>
+
+  // AI-powered pronunciation analysis
+  analyzePronunciation(
+    userTranscription: string,
+    targetText: string,
+    targetRomanization: string
+  ): Promise<PronunciationFeedback>
+}
+
+interface PronunciationFeedback {
+  transcribed: string
+  mistakes: string[]
+  tip: string
+  corrected: {
+    thai: string
+    romanization: string
+    translation: string
+  }
+  confidence: number
+}
+
+// Implementation flow
+class SpeakingPracticeEngine {
+  async processPronunciationAttempt(
+    audioBlob: Blob,
+    targetSentence: {
+      thai: string
+      romanization: string
+      translation: string
+    }
+  ): Promise<PronunciationFeedback> {
+    // 1. Transcribe user audio using Web Speech API
+    const userTranscription = await this.transcribeAudio(audioBlob)
+
+    // 2. Analyze pronunciation using GPT-4o
+    const feedback = await this.analyzePronunciation(
+      userTranscription,
+      targetSentence.thai,
+      targetSentence.romanization
+    )
+
+    // 3. Store session data for analytics
+    await this.storePronunciationSession({
+      targetText: targetSentence.thai,
+      transcribedText: userTranscription,
+      feedbackData: feedback,
+    })
+
+    return feedback
+  }
+}
+```
+
+### **Audio Comparison System**
+
+```typescript
+interface AudioComparisonSystem {
+  // Generate comparison audio using same TTS voice
+  generateUserAudio(transcribedText: string): Promise<Buffer>;
+  generateReferenceAudio(targetText: string): Promise<Buffer>;
+
+  // Audio playback coordination
+  interface AudioControls {
+    playUserVersion(): Promise<void>;
+    playCorrectVersion(): Promise<void>;
+    stopAll(): void;
+  }
+}
+
+// Cost-optimized implementation
+class AudioComparisonManager {
+  async generateComparisonAudio(
+    userTranscription: string,
+    targetText: string,
+    practiceMode: 'word' | 'sentence'
+  ): Promise<{
+    userAudio: Buffer;
+    referenceAudio: Buffer;
+  }> {
+    // Generate both using same TTS voice for fair comparison
+    const [userAudio, referenceAudio] = await Promise.all([
+      this.ttsService.generate(userTranscription, 'user', practiceMode),
+      this.ttsService.generate(targetText, 'reference', practiceMode)
+    ]);
+
+    return { userAudio, referenceAudio };
+  }
+}
+```
+
+### **GPT-4o Pronunciation Analysis**
+
+```typescript
+const analyzePronunciationPrompt = (
+  userTranscription: string,
+  targetThai: string,
+  targetRomanization: string,
+  targetTranslation: string
+) => `
+Analyze this Thai pronunciation attempt:
+
+Target: "${targetThai}" (${targetRomanization}) - "${targetTranslation}"
+User said: "${userTranscription}"
+
+Provide detailed feedback in this JSON format:
+{
+  "transcribed": "what the user actually said",
+  "mistakes": ["specific pronunciation errors"],
+  "tip": "helpful pronunciation advice",
+  "corrected": {
+    "thai": "corrected version if needed",
+    "romanization": "corrected romanization",
+    "translation": "corrected translation"
+  }
+}
+
+Focus on:
+- Tone differences (Thai has 5 tones)
+- Consonant/vowel pronunciation
+- Word boundaries and rhythm
+- Cultural context if relevant
+`
+
+class PronunciationAnalyzer {
+  async analyze(
+    userTranscription: string,
+    target: { thai: string; romanization: string; translation: string }
+  ): Promise<PronunciationFeedback> {
+    const response = await this.openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "user",
+          content: analyzePronunciationPrompt(
+            userTranscription,
+            target.thai,
+            target.romanization,
+            target.translation
+          ),
+        },
+      ],
+      temperature: 0.3, // Lower temperature for consistent analysis
+      response_format: { type: "json_object" },
+    })
+
+    return JSON.parse(response.choices[0].message.content)
+  }
+}
+```
+
+### **Storage Optimization Strategy**
+
+```typescript
+interface StorageOptimization {
+  // Cache strategy
+  cachePolicy: {
+    referenceAudio: 'permanent_cache'; // Shared across all users
+    userTranscriptions: 'temporary'; // 7-day TTL
+    maxFileSize: 10485760; // 10MB for recordings
+    compressionFormat: 'webm'; // Browser-native, efficient
+  };
+
+  // Cost management
+  costOptimization: {
+    ttsCostPerCharacter: 0.000015; // OpenAI TTS pricing
+    cacheHitRate: 85; // % of requests served from cache
+    estimatedMonthlySavings: 40; // % cost reduction
+  };
+
+  // Cleanup automation
+  cleanupStrategy: {
+    oldCacheEntries: '30 days';
+    userRecordings: '7 days';
+    scheduledCleanup: 'weekly';
+  };
+}
+
+// Automated cleanup functions
+CREATE OR REPLACE FUNCTION cleanup_old_cached_audio()
+RETURNS INTEGER AS $$
+DECLARE
+  deleted_count INTEGER;
+BEGIN
+  DELETE FROM cached_audio
+  WHERE created_at < NOW() - INTERVAL '30 days';
+
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
 ## 🔒 Security Architecture

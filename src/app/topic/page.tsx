@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { VocabularyLoading } from "@/components/topic/vocabulary-loading"
+import { AudioButton } from "@/components/shared/AudioButton"
 import { BookOpen, History, X, Check } from "lucide-react"
 
 interface UsageStats {
@@ -254,9 +255,9 @@ export default function TopicPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">
             <BookOpen className="h-8 w-8 text-primary" />
-            <h2 className="text-3xl font-bold text-foreground ">
+            <h1 className="text-3xl font-bold text-foreground ">
               Generate Thai Vocabulary
-            </h2>
+            </h1>
           </div>
           <p className="text-muted-foreground">
             Enter a topic and get AI-generated Thai vocabulary words with
@@ -400,12 +401,17 @@ export default function TopicPage() {
                         </p>
                         <div className="flex flex-wrap gap-1">
                           {result.vocabWords.slice(0, 5).map((word, index) => (
-                            <span
+                            <div
                               key={index}
-                              className="text-xs bg-primary/10 text-primary px-2 py-1 rounded"
+                              className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded"
                             >
-                              {word.word}
-                            </span>
+                              <span>{word.word}</span>
+                              <AudioButton
+                                text={word.word}
+                                contentType="word"
+                                size="sm"
+                              />
+                            </div>
                           ))}
                           {result.vocabWords.length > 5 && (
                             <span className="text-xs text-muted-foreground px-2 py-1">
@@ -439,9 +445,16 @@ export default function TopicPage() {
                       <CardContent className="pt-4">
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1">
-                            <h4 className="text-lg font-medium text-foreground">
-                              {word.word}
-                            </h4>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="text-lg font-medium text-foreground">
+                                {word.word}
+                              </h4>
+                              <AudioButton
+                                text={word.word}
+                                contentType="word"
+                                size="icon"
+                              />
+                            </div>
                             {word.word_romanization && (
                               <p className="text-sm text-muted-foreground italic">
                                 {word.word_romanization}
@@ -475,10 +488,17 @@ export default function TopicPage() {
                           {word.translation}
                         </p>
                         <div className="space-y-1">
-                          <p className="text-foreground">
-                            <span className="font-medium">Example:</span>{" "}
-                            {word.sentence}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-foreground">
+                              <span className="font-medium">Example:</span>{" "}
+                              {word.sentence}
+                            </p>
+                            <AudioButton
+                              text={word.sentence}
+                              contentType="sentence"
+                              size="icon"
+                            />
+                          </div>
                           {word.sentence_romanization && (
                             <p className="text-sm text-muted-foreground italic">
                               {word.sentence_romanization}

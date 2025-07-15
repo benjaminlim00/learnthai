@@ -47,3 +47,14 @@ export interface SM2Result {
   repetitions: number
   nextReview: Date
 }
+
+// Cached TTS Audio
+export interface CachedAudio {
+  id: string
+  text_hash: string // SHA-256 hash of the text content
+  text_content: string // Original text for reference
+  voice_name: string // e.g., "nova"
+  storage_path: string // Path in Supabase Storage
+  file_size: number // File size in bytes
+  created_at: string
+}

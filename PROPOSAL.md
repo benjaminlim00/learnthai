@@ -43,7 +43,22 @@ LearnThaiAI is a revolutionary web-based language learning platform that combine
   - Time-based (chronological due dates)
 - **Visual Progress Tracking**: Star ratings, color coding, next review dates
 
-### **3. Bidirectional Translation Tool**
+### **3. AI-Powered Speaking Practice System**
+
+- **Guided 4-Step Workflow**:
+  1. **Vocabulary Selection**: Choose from your saved vocabulary words
+  2. **Listen & Practice**: Hear correct pronunciation and select practice mode (word/sentence)
+  3. **Record Pronunciation**: Record your attempt using browser microphone
+  4. **AI Feedback Analysis**: Receive detailed feedback with audio comparison
+- **OpenAI TTS Integration**: High-quality text-to-speech for reference pronunciation
+- **Speech Recognition**: Browser-based speech-to-text for pronunciation capture
+- **AI Pronunciation Analysis**: GPT-4o analyzes pronunciation attempts and provides specific feedback
+- **Smart Audio Caching**: Cost-optimized system that caches reference pronunciations (shared) but never caches user transcriptions (privacy)
+- **Audio Comparison**: Side-by-side playback of user pronunciation vs. correct pronunciation using the same TTS voice for fair comparison
+- **Practice Modes**: Choose between practicing individual words or complete example sentences
+- **Progress Tracking**: Store pronunciation session data for analytics and improvement tracking
+
+### **4. Bidirectional Translation Tool**
 
 - **English ↔ Thai Translation**: GPT-4o powered translation service
 - **Automatic Romanization**: Thai text includes pronunciation guide
@@ -51,18 +66,20 @@ LearnThaiAI is a revolutionary web-based language learning platform that combine
 - **Quick Direction Swapping**: One-click language direction change
 - **Sample Text Integration**: Pre-populated examples for quick testing
 
-### **4. User Progress & Analytics**
+### **5. User Progress & Analytics**
 
 - **Learning Status Tracking**: new → learning → mastered progression
 - **Vocabulary Management**: Browse, filter, and delete saved words
 - **Session Statistics**: Review completion rates and performance metrics
-- **Historical Data**: Vocabulary generation and translation history
+- **Pronunciation Analytics**: Track speaking practice sessions and improvement over time
+- **Historical Data**: Vocabulary generation, translation, and pronunciation practice history
 - **Visual Difficulty Indicators**: 1-5 star system with color coding
 
-### **5. Enterprise-Grade Security**
+### **6. Enterprise-Grade Security**
 
 - **Supabase Authentication**: Email/password + magic link support
 - **Row-Level Security**: Users can only access their own data
+- **Audio Storage Security**: Separate buckets for cached TTS (shared) and user recordings (private)
 - **Rate Limiting**: API protection against abuse (10 generations/hour, 30 translations/hour)
 - **Input Validation**: Zod schema validation for all user inputs
 - **Environment Security**: Proper secrets management
@@ -152,29 +169,24 @@ LearnThaiAI is a revolutionary web-based language learning platform that combine
 
 ### **Phase 1: Core Enhancement (Next 3 months)**
 
-- **🎵 Audio Integration**
-
-  - Text-to-speech for pronunciation practice
-  - Audio playback for all vocabulary words
-
 - **📱 Mobile Optimization**
 
   - Progressive Web App (PWA) support
   - Mobile-first UI improvements
-  - Offline functionality for reviews
+  - Offline functionality for reviews and cached audio playback
 
 - **🎮 Gamification Elements**
-  - Daily streak tracking
-  - Achievement badges
-  - Learning goals and milestones
-  - Progress visualization charts
+  - Daily streak tracking for vocabulary and pronunciation practice
+  - Achievement badges for milestones
+  - Learning goals and progress visualization charts
+  - Speaking practice accuracy scores and improvement tracking
 
 ### **Phase 2: Advanced Learning (Months 4-6)**
 
 - **💬 Conversation Practice**
 
-  - AI-powered chat conversations
-  - Scenario-based dialogues
+  - AI-powered chat conversations using vocabulary words
+  - Scenario-based dialogues with pronunciation integration
   - Grammar correction and suggestions
   - Contextual conversation starters
 
@@ -185,49 +197,55 @@ LearnThaiAI is a revolutionary web-based language learning platform that combine
   - Grammar-focused exercises
   - Pattern recognition training
 
+- **🎵 Enhanced Audio Features**
+  - Voice speed control for pronunciation practice
+  - Tone visualization for Thai pronunciation
+  - Advanced pronunciation metrics and scoring
+  - Audio lessons and pronunciation courses
+
 ### **Phase 3: Social & Advanced Features (Months 7-12)**
 
 - **👥 Social Learning**
 
   - Study groups and communities
-  - Peer progress sharing
+  - Peer progress sharing for vocabulary and pronunciation
   - Collaborative vocabulary lists
-  - Language exchange matching
+  - Language exchange matching with speaking practice integration
 
 - **🎨 Content Expansion**
 
   - Image-based vocabulary learning
-  - Video content integration
+  - Video content integration with pronunciation practice
   - Cultural context explanations
-  - Regional dialect variations
+  - Regional dialect variations and pronunciation differences
 
 - **📊 Advanced Analytics**
-  - Detailed learning insights
-  - Performance predictions
-  - Learning efficiency metrics
+  - Detailed learning insights including pronunciation improvement trends
+  - Performance predictions based on speaking practice data
+  - Learning efficiency metrics across all practice modes
   - Comparative progress analysis
 
 ### **Phase 4: Platform Expansion (Year 2)**
 
 - **🌍 Multi-Language Support**
 
-  - Additional Southeast Asian languages
+  - Additional Southeast Asian languages with pronunciation practice
   - Language comparison features
   - Cross-language vocabulary connections
   - Multi-language user interface
 
 - **🏫 Educational Integration**
 
-  - Teacher dashboard and classroom management
-  - Student progress tracking
-  - Curriculum alignment tools
-  - Bulk user management
+  - Teacher dashboard with pronunciation progress tracking
+  - Student speaking practice assignments
+  - Curriculum alignment tools with audio components
+  - Bulk user management for classrooms
 
 - **🔗 API & Integrations**
-  - Third-party app integrations
-  - Chrome extension for web translation
-  - API for educational institutions
-  - Content management system
+  - Third-party app integrations including TTS API
+  - Chrome extension for web translation with pronunciation
+  - API for educational institutions with speaking features
+  - Content management system with audio support
 
 ---
 
