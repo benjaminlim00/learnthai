@@ -23,7 +23,7 @@ This document provides comprehensive technical documentation for developers, arc
 │ • TailwindCSS 3.4 (Utility-first styling)   │
 │ • shadcn/ui + Radix UI (Accessible components) │
 │ • next-themes (Theme management)             │
-│ • Web Speech API (Speech recognition)        │
+│ • OpenAI Whisper API (Speech transcription)  │
 │ • MediaRecorder API (Audio recording)       │
 └─────────────────────────────────────────────┘
 
@@ -418,7 +418,7 @@ class AudioCacheManager {
 
 ```typescript
 interface SpeechRecognitionPipeline {
-  // Browser-based speech recognition
+  // OpenAI Whisper-based speech transcription
   recordAudio(): Promise<Blob>
   transcribeAudio(audioBlob: Blob): Promise<string>
 
@@ -452,7 +452,7 @@ class SpeakingPracticeEngine {
       translation: string
     }
   ): Promise<PronunciationFeedback> {
-    // 1. Transcribe user audio using Web Speech API
+    // 1. Transcribe user audio using OpenAI Whisper (GPT-4o mini)
     const userTranscription = await this.transcribeAudio(audioBlob)
 
     // 2. Analyze pronunciation using GPT-4o
@@ -473,6 +473,16 @@ class SpeakingPracticeEngine {
   }
 }
 ```
+
+### **Speech-to-Text Architecture Decision**
+
+The platform uses OpenAI's Whisper API with the `gpt-4o-mini-transcribe` model for speech-to-text transcription instead of browser-based Web Speech API for several key reasons:
+
+- **Multi-browser Compatibility**: Works consistently across all browsers and devices
+- **Thai Language Optimization**: Better accuracy for Thai pronunciation and tones
+- **Privacy-First**: Audio processed server-side, never cached or stored permanently
+- **Cost Efficiency**: Mini model provides excellent accuracy at low cost
+- **Reliability**: Eliminates browser-specific STT inconsistencies
 
 ### **Audio Comparison System**
 

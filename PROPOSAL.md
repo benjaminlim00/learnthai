@@ -51,7 +51,7 @@ LearnThaiAI is a revolutionary web-based language learning platform that combine
   3. **Record Pronunciation**: Record your attempt using browser microphone
   4. **AI Feedback Analysis**: Receive detailed feedback with audio comparison
 - **OpenAI TTS Integration**: High-quality text-to-speech for reference pronunciation
-- **Speech Recognition**: Browser-based speech-to-text for pronunciation capture
+- **Speech Recognition**: OpenAI Whisper (GPT-4o mini) transcription for pronunciation capture
 - **AI Pronunciation Analysis**: GPT-4o analyzes pronunciation attempts and provides specific feedback
 - **Smart Audio Caching**: Cost-optimized system that caches reference pronunciations (shared) but never caches user transcriptions (privacy)
 - **Audio Comparison**: Side-by-side playback of user pronunciation vs. correct pronunciation using the same TTS voice for fair comparison

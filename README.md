@@ -163,7 +163,7 @@ Open [http://localhost:3000](http://localhost:3000) 🎉
 - **AI Integration**: OpenAI GPT-4o for vocabulary generation and translation
 - **TTS System**: OpenAI TTS with intelligent audio caching
 - **Audio Storage**: Supabase Storage with dual-bucket architecture (cached TTS + user recordings)
-- **Speech Recognition**: Browser Web Speech API integration
+- **Speech Recognition**: OpenAI Whisper (GPT-4o mini) transcription
 - **Rate Limiting**: Upstash Redis for API protection
 - **Validation**: Zod schemas for type-safe data validation
 
@@ -184,7 +184,7 @@ LearnThaiAI Platform
 │   ├── AI Generation (GPT-4o)
 │   ├── Translation Service
 │   ├── Speaking Practice Engine
-│   │   ├── Audio Processing (Speech Recognition)
+│   │   ├── Audio Processing (OpenAI Whisper STT)
 │   │   ├── TTS Generation (OpenAI TTS)
 │   │   ├── Pronunciation Analysis (AI Feedback)
 │   │   └── Audio Storage (Supabase Storage)
@@ -290,7 +290,7 @@ learnthai/
   2. Listen to correct pronunciation and select practice mode (word/sentence)
   3. Record your pronunciation attempt
   4. Receive AI-powered feedback with audio comparison
-- **Pronunciation Analysis**: AI analyzes your speech and provides specific feedback on mistakes
+- **Pronunciation Analysis**: OpenAI Whisper transcribes your speech, then GPT-4o mini analyzes pronunciation with detailed feedback
 - **Audio Comparison**: Compare your recording with the correct pronunciation using the same TTS voice
 - **Smart Caching**: Reference pronunciations are cached for instant playback and cost optimization
 - **Practice Modes**: Choose between practicing individual words or complete example sentences
