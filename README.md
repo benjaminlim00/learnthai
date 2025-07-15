@@ -36,8 +36,12 @@ Create `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-# OpenAI Configuration
+# OpenAI Configuration (for vocabulary generation)
 OPENAI_API_KEY=your_openai_api_key
+
+# Azure Speech Service Configuration (for Thai TTS)
+AZURE_SPEECH_KEY=your_azure_speech_key
+AZURE_SPEECH_REGION=your_azure_speech_region
 
 # Rate Limiting (Optional - for production)
 UPSTASH_REDIS_REST_URL=your_upstash_redis_url
@@ -71,6 +75,12 @@ Open [http://localhost:3000](http://localhost:3000) 🎉
 2. Create account → API Keys → Create new key
 3. **Note**: Usage-based billing, typically $1-5/month for normal use
 
+**Azure Speech Service:**
+
+1. Visit [Azure Portal](https://portal.azure.com) → Create Speech Service resource
+2. Get your Speech Key and Region from the resource overview
+3. **Note**: Includes free tier with 500,000 characters/month for TTS
+
 **Upstash Redis (Optional):**
 
 1. Visit [upstash.com](https://upstash.com) → Create Redis database
@@ -91,6 +101,7 @@ Open [http://localhost:3000](http://localhost:3000) 🎉
 ### 🧠 **AI-Powered Learning**
 
 - **Smart Vocabulary Generation**: Generate contextually relevant Thai vocabulary using OpenAI GPT-4o
+- **Native Thai Text-to-Speech**: High-quality Thai pronunciation using Azure Speech Service with female Thai voice
 - **Intelligent Word Filtering**: Avoids repeating words you've already learned
 - **Natural Language Examples**: Casual, conversational Thai sentences that real people use
 

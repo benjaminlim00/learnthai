@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
-import { OpenAI } from "openai"
+import * as sdk from "microsoft-cognitiveservices-speech-sdk"
 import {
   generateAudioHash,
   getCachedAudio,
   cacheAudio,
   getAudioFromStorage,
 } from "@/lib/audio-cache"
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+import { env } from "@/lib/env"
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,10 +40,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TTS configuration (constants)
-    const model = "gpt-4o-mini-tts"
-    const voice = "nova"
-    const speed = 0.8
+    // Azure Speech Service configuration
+    const speechKey = env.AZURE_SPEECH_KEY
+    const speechRegion = env.AZURE_SPEECH_REGION
+
+    if (!speechKey || !speechRegion) {
+      return NextResponse.json(
+        { error: "Azure Speech Service configuration missing" },
+        { status: 500 }
+      )
+    }
+
+    const voice = "th-TH-PremwadeeNeural" // Thai female voice
+    const speed = 0.8 // 20% slower for better pronunciation learning
 
     // Only cache reference audio (words and sentences), not user transcriptions
     let cachedAudio = null
@@ -54,7 +60,13 @@ export async function POST(request: NextRequest) {
 
     if (audioType === "reference") {
       // Generate hash for caching (includes contentType for proper separation)
-      textHash = generateAudioHash(text, model, voice, speed, contentType)
+      textHash = generateAudioHash(
+        text,
+        "azure-speech",
+        voice,
+        speed,
+        contentType
+      )
 
       // Check if audio is already cached
       cachedAudio = await getCachedAudio(textHash)
@@ -71,7 +83,7 @@ export async function POST(request: NextRequest) {
         if (audioBuffer) {
           return new NextResponse(audioBuffer, {
             headers: {
-              "Content-Type": "audio/mpeg",
+              "Content-Type": "audio/wav",
               "Content-Length": audioBuffer.byteLength.toString(),
               "X-Audio-Source": "cache",
               "X-Audio-Type": audioType,
@@ -92,24 +104,55 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate new speech using OpenAI TTS
+    // Generate new speech using Azure Speech Service
     console.log(
-      `Generating new TTS ${contentType} audio (${audioType}) for text:`,
+      `Generating new Azure TTS ${contentType} audio (${audioType}) for text:`,
       text.substring(0, 50)
     )
-    const mp3Response = await openai.audio.speech.create({
-      model,
-      voice,
-      input: text,
-      speed,
-    })
 
-    // Convert the response to an ArrayBuffer
-    const arrayBuffer = await mp3Response.arrayBuffer()
+    // Configure Azure Speech Service
+    const speechConfig = sdk.SpeechConfig.fromSubscription(
+      speechKey,
+      speechRegion
+    )
+    speechConfig.speechSynthesisVoiceName = voice
+    speechConfig.speechSynthesisOutputFormat =
+      sdk.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3
+
+    // Create SSML with speed control
+    const ssml = `
+      <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="th-TH">
+        <voice name="${voice}">
+          <prosody rate="${speed.toString()}">${text}</prosody>
+        </voice>
+      </speak>
+    `
+
+    // Create synthesizer
+    const synthesizer = new sdk.SpeechSynthesizer(speechConfig)
+
+    // Synthesize speech
+    const audioBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+      synthesizer.speakSsmlAsync(
+        ssml,
+        (result) => {
+          if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+            resolve(result.audioData)
+          } else {
+            reject(new Error(`Speech synthesis failed: ${result.errorDetails}`))
+          }
+          synthesizer.close()
+        },
+        (error) => {
+          synthesizer.close()
+          reject(error)
+        }
+      )
+    })
 
     // Cache reference audio (both words and sentences), but not user transcriptions
     if (audioType === "reference") {
-      cacheAudio(textHash, text, voice, arrayBuffer)
+      cacheAudio(textHash, text, voice, audioBuffer)
         .then((cached) => {
           if (cached) {
             console.log(
@@ -127,17 +170,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Return the audio data
-    return new NextResponse(arrayBuffer, {
+    return new NextResponse(audioBuffer, {
       headers: {
         "Content-Type": "audio/mpeg",
-        "Content-Length": arrayBuffer.byteLength.toString(),
+        "Content-Length": audioBuffer.byteLength.toString(),
         "X-Audio-Source": "generated",
         "X-Audio-Type": audioType,
         "X-Content-Type": contentType,
       },
     })
   } catch (error) {
-    console.error("TTS error:", error)
+    console.error("Azure TTS error:", error)
 
     return NextResponse.json(
       { error: "Failed to generate speech" },

@@ -207,7 +207,7 @@ export function FeedbackCard({
                   disabled={isPlayingUserAudio}
                   className={`flex items-center gap-2 ${
                     isPlayingUserAudio
-                      ? "bg-orange-50 border-orange-200 text-orange-700"
+                      ? "bg-orange-50 dark:bg-orange-950 border-orange-400 dark:border-orange-800 text-orange-900 dark:text-orange-200"
                       : ""
                   }`}
                 >
@@ -226,7 +226,7 @@ export function FeedbackCard({
                   disabled={isPlayingCorrectAudio}
                   className={`flex items-center gap-2 ${
                     isPlayingCorrectAudio
-                      ? "bg-green-50 border-green-200 text-green-700"
+                      ? "bg-green-50 dark:bg-green-950 border-green-400 dark:border-green-800 text-green-900 dark:text-green-200"
                       : ""
                   }`}
                 >
