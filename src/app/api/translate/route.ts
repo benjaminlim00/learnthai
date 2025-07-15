@@ -52,7 +52,8 @@ ${text}`
       let completion: OpenAI.Chat.Completions.ChatCompletion
       try {
         completion = await openai.chat.completions.create({
-          model: "gpt-4o",
+          // we use this prompt to translate text
+          model: "gpt-4o-mini",
           messages: [
             {
               role: "system",

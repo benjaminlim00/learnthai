@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
 
     // Generate pronunciation feedback using GPT-4
     const feedbackResponse = await openai.chat.completions.create({
+      // we use this prompt to compare what the user said vs the actual vocabulary
       model: "gpt-4o-mini",
       messages: [
         {

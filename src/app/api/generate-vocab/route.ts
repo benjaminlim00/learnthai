@@ -193,7 +193,8 @@ Respond with a JSON object containing a "vocabulary" array with exactly ONE entr
       let completion: OpenAI.Chat.Completions.ChatCompletion
       try {
         completion = await openai.chat.completions.create({
-          model: "gpt-4o",
+          // we use this this prompt for generating vocabulary
+          model: "gpt-4o-mini",
           messages: [
             {
               role: "system",
