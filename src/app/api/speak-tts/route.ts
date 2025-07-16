@@ -5,17 +5,15 @@ import {
   getCachedAudio,
   cacheAudio,
   getAudioFromStorage,
-} from "@/lib/audio-cache"
+} from "@/lib/services/audio-cache"
 import { env } from "@/lib/env"
-import { getThaiVoiceFromSpeakerPreference } from "@/lib/voice-utils"
+import { getThaiVoiceFromSpeakerPreference } from "@/lib/utils/voice"
+
+//TODO: we need to rate limit
 
 export async function POST(request: NextRequest) {
   try {
-    const {
-      text,
-      audioType = "reference",
-      contentType = "word",
-    } = await request.json()
+    const { text, audioType, contentType } = await request.json()
 
     if (!text) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 })
@@ -86,18 +84,16 @@ export async function POST(request: NextRequest) {
 
     // Only cache reference audio (words and sentences), not user transcriptions
     let cachedAudio = null
-    let textHash = ""
+    // Generate hash for caching
+    const textHash = generateAudioHash(
+      text,
+      "azure-speech",
+      voice,
+      speed,
+      contentType
+    )
 
     if (audioType === "reference") {
-      // Generate hash for caching (includes contentType for proper separation)
-      textHash = generateAudioHash(
-        text,
-        "azure-speech",
-        voice,
-        speed,
-        contentType
-      )
-
       // Check if audio is already cached
       cachedAudio = await getCachedAudio(textHash)
 
@@ -182,7 +178,7 @@ export async function POST(request: NextRequest) {
 
     // Cache reference audio (both words and sentences), but not user transcriptions
     if (audioType === "reference") {
-      cacheAudio(textHash, text, voice, audioBuffer)
+      cacheAudio(textHash, text, voice, audioBuffer, audioType, contentType)
         .then((cached) => {
           if (cached) {
             console.log(

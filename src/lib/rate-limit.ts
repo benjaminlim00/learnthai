@@ -66,14 +66,12 @@ export const generalApiLimiter = redis
 export const withRateLimit = (
   handler: (request: NextRequest) => Promise<NextResponse>,
   limiter: Ratelimit | ReturnType<typeof createMockRateLimiter>,
-  getIdentifier?: (request: NextRequest) => string
+  getIdentifier: (request: NextRequest) => string
 ) => {
   return async (request: NextRequest) => {
     try {
       // Get identifier (IP address or user ID)
-      const identifier = getIdentifier
-        ? getIdentifier(request)
-        : getClientIdentifier(request)
+      const identifier = getIdentifier(request)
 
       const { success, limit, remaining, reset } = await limiter.limit(
         identifier
@@ -134,7 +132,10 @@ const getClientIdentifier = (request: NextRequest): string => {
 
 // Get user identifier for rate limiting
 export const getUserIdentifier = (request: NextRequest): string => {
-  // This should be called after authentication middleware
+  // TODO: This should be called after authentication middleware
+  // Priority: Medium - Need proper user identification for rate limiting
+  // Current implementation uses IP as fallback which is not ideal
+  // Should integrate with Supabase auth to get actual user ID
   // For now, use IP as fallback
   return getClientIdentifier(request)
 }

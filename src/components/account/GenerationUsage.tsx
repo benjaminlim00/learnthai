@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 
 interface GenerationUsageProps {
   generationStats: {
@@ -34,16 +35,12 @@ export function GenerationUsage({ generationStats }: GenerationUsageProps) {
               <div className="text-sm text-muted-foreground">remaining</div>
             </div>
           </div>
-          <div className="w-full bg-muted rounded-full h-2">
-            <div
-              className="bg-primary h-2 rounded-full transition-all duration-300"
-              style={{
-                width: `${
-                  (generationStats.dailyUsed / generationStats.dailyLimit) * 100
-                }%`,
-              }}
-            ></div>
-          </div>
+          <Progress
+            value={
+              (generationStats.dailyUsed / generationStats.dailyLimit) * 100
+            }
+            className="h-2"
+          />
           <div className="text-sm text-muted-foreground">
             <span>Resets at {generationStats.resetTime}</span>
           </div>

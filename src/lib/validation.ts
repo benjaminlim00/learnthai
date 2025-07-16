@@ -1,3 +1,4 @@
+import { CategorizedError } from "@/types/scoring"
 import { z } from "zod"
 
 export const generateVocabSchema = z
@@ -46,7 +47,7 @@ export type TranslateInput = z.infer<typeof translateSchema>
 // Vocabulary word creation validation (userId removed - comes from auth)
 export const createVocabularySchema = z.object({
   word: z.string().min(1, "Word is required").max(200, "Word too long"),
-  word_romanization: z.string().optional(),
+  word_romanization: z.string(),
   translation: z
     .string()
     .min(1, "Translation is required")
@@ -55,8 +56,8 @@ export const createVocabularySchema = z.object({
     .string()
     .min(1, "Sentence is required")
     .max(1000, "Sentence too long"),
-  sentence_romanization: z.string().optional(),
-  sentence_translation: z.string().optional(),
+  sentence_romanization: z.string(),
+  sentence_translation: z.string(),
 })
 
 export type CreateVocabularyInput = z.infer<typeof createVocabularySchema>
@@ -90,16 +91,11 @@ export const getVocabularySchema = z.object({
   status: z.enum(["new", "learning", "mastered"]).optional(),
 })
 
-export type GetVocabularyInput = z.infer<typeof getVocabularySchema>
-
 // Get due vocabulary cards validation
 export const getDueVocabularySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional().default(20),
   priority: z.enum(["time", "difficulty"]).optional().default("difficulty"),
-  includeStats: z.coerce.boolean().optional().default(false),
 })
-
-export type GetDueVocabularyInput = z.infer<typeof getDueVocabularySchema>
 
 // Delete vocabulary validation
 export const deleteVocabularySchema = z
@@ -110,8 +106,6 @@ export const deleteVocabularySchema = z
   .refine((data) => data.id || data.word, {
     message: "Either id or word must be provided",
   })
-
-export type DeleteVocabularyInput = z.infer<typeof deleteVocabularySchema>
 
 // GPT vocabulary response validation (for API responses)
 export const gptVocabularyWordSchema = z.object({
@@ -133,31 +127,23 @@ export const gptVocabularyResponseSchema = z.object({
 export type GPTVocabularyWord = z.infer<typeof gptVocabularyWordSchema>
 export type GPTVocabularyResponse = z.infer<typeof gptVocabularyResponseSchema>
 
-// Helper function to validate request data
-export const validateRequest = <T>(
-  schema: z.ZodSchema<T>,
-  data: unknown
-):
-  | {
-      success: true
-      data: T
-      error: null
-    }
-  | {
-      success: false
-      data: null
-      error: string
-    } => {
-  try {
-    const result = schema.parse(data)
-    return { success: true, data: result, error: null }
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const errorMessage = error.errors
-        .map((e) => `${e.path.join(".")}: ${e.message}`)
-        .join(", ")
-      return { success: false, data: null, error: errorMessage }
-    }
-    return { success: false, data: null, error: "Invalid input data" }
-  }
+// Pronunciation feedback validation schemas
+export const correctedSchema = z.object({
+  thai: z.string().min(1, "Thai text is required"),
+  romanization: z.string().min(1, "Romanization is required"),
+  translation: z.string().min(1, "Translation is required"),
+})
+
+export const pronunciationFeedbackSchema = z.object({
+  transcribed: z.string().min(1, "Transcribed text is required"),
+  mistakes: z.array(z.string()),
+  tip: z.string().min(1, "Improvement tip is required"),
+  corrected: correctedSchema,
+})
+
+export type CorrectedData = z.infer<typeof correctedSchema>
+type PronunciationFeedbackRaw = z.infer<typeof pronunciationFeedbackSchema>
+export type PronunciationFeedback = PronunciationFeedbackRaw & {
+  score: number
+  categorized_errors: CategorizedError[]
 }

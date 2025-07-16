@@ -5,8 +5,9 @@ import {
   getEaseDifficulty,
   getEaseStars,
   formatInterval,
-} from "@/lib/spaced-repetition"
+} from "@/lib/services/spaced-repetition"
 import { AudioButton } from "@/components/shared/AudioButton"
+import { LoadingSpinner } from "@/components/shared"
 import { Trash2 } from "lucide-react"
 
 interface BrowseVocabularyProps {
@@ -44,11 +45,9 @@ export function BrowseVocabulary({
                     contentType="word"
                     size="icon"
                   />
-                  {word.word_romanization && (
-                    <span className="text-muted-foreground text-sm">
-                      ({word.word_romanization})
-                    </span>
-                  )}
+                  <span className="text-muted-foreground text-sm">
+                    ({word.word_romanization})
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-muted-foreground">
@@ -80,7 +79,7 @@ export function BrowseVocabulary({
                   className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                 >
                   {deletingWordId === word.id ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                    <LoadingSpinner size="sm" variant="current" />
                   ) : (
                     <Trash2 className="h-4 w-4" />
                   )}
@@ -110,16 +109,12 @@ export function BrowseVocabulary({
                       size="icon"
                     />
                   </div>
-                  {word.sentence_romanization && (
-                    <div className="text-sm text-muted-foreground italic">
-                      {word.sentence_romanization}
-                    </div>
-                  )}
-                  {word.sentence_translation && (
-                    <div className="text-sm text-muted-foreground">
-                      {word.sentence_translation}
-                    </div>
-                  )}
+                  <div className="text-sm text-muted-foreground italic">
+                    {word.sentence_romanization}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {word.sentence_translation}
+                  </div>
                 </div>
               </div>
 

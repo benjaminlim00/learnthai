@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { ProtectedRoute } from "@/components/shared/ProtectedRoute"
+import { ProtectedRoute, LoadingSpinner } from "@/components/shared"
 
 import { GPTVocabularyWord } from "@/lib/validation"
 import { Button } from "@/components/ui/button"
@@ -421,7 +421,11 @@ export default function TopicPage() {
                 >
                   {loading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <LoadingSpinner
+                        size="sm"
+                        variant="current"
+                        className="mr-2"
+                      />
                       Generating...
                     </>
                   ) : mode === "topic" ? (
@@ -535,11 +539,9 @@ export default function TopicPage() {
                                 size="icon"
                               />
                             </div>
-                            {word.word_romanization && (
-                              <p className="text-sm text-muted-foreground italic">
-                                {word.word_romanization}
-                              </p>
-                            )}
+                            <p className="text-sm text-muted-foreground italic">
+                              {word.word_romanization}
+                            </p>
                           </div>
                           <Button
                             onClick={() => toggleSaveWord(word)}
@@ -550,7 +552,11 @@ export default function TopicPage() {
                           >
                             {isSaving ? (
                               <>
-                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                                <LoadingSpinner
+                                  size="sm"
+                                  variant="current"
+                                  className="w-3 h-3"
+                                />
                                 {isSaved ? "Unsaving..." : "Saving..."}
                               </>
                             ) : isSaved ? (
@@ -579,17 +585,13 @@ export default function TopicPage() {
                               size="icon"
                             />
                           </div>
-                          {word.sentence_romanization && (
-                            <p className="text-sm text-muted-foreground italic">
-                              {word.sentence_romanization}
-                            </p>
-                          )}
-                          {word.sentence_translation && (
-                            <p className="text-sm text-muted-foreground">
-                              <span className="font-medium">Translation:</span>{" "}
-                              {word.sentence_translation}
-                            </p>
-                          )}
+                          <p className="text-sm text-muted-foreground italic">
+                            {word.sentence_romanization}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            <span className="font-medium">Translation:</span>{" "}
+                            {word.sentence_translation}
+                          </p>
                         </div>
                       </CardContent>
                     </Card>

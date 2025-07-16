@@ -10,11 +10,11 @@ CREATE TABLE vocabulary (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   word TEXT NOT NULL,
-  word_romanization TEXT,
+  word_romanization TEXT NOT NULL,
   translation TEXT NOT NULL,
   sentence TEXT NOT NULL,
-  sentence_romanization TEXT,
-  sentence_translation TEXT,
+  sentence_romanization TEXT NOT NULL,
+  sentence_translation TEXT NOT NULL,
   status TEXT DEFAULT 'new' CHECK (status IN ('new', 'learning', 'mastered')),
   interval INTEGER DEFAULT 1,
   ease_factor DECIMAL(4,2) DEFAULT 2.5,
@@ -55,16 +55,27 @@ CREATE TABLE cached_audio (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Speaking practice sessions
+-- Pronunciation sessions for speaking practice
+-- Fixed: Removed duplicate id field
 CREATE TABLE pronunciation_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  vocabulary_id UUID REFERENCES vocabulary(id) ON DELETE CASCADE,
-  practice_mode TEXT CHECK (practice_mode IN ('word', 'sentence')),
-  target_text TEXT NOT NULL,
-  transcribed_text TEXT,
-  feedback_data JSONB,
+  content TEXT NOT NULL,
+  content_type TEXT CHECK (content_type IN ('word', 'sentence')),
+  errors TEXT[] CHECK (array_length(errors, 1) IS NULL OR 
+    array_position(errors, 'tone_error') IS NOT NULL OR
+    array_position(errors, 'vowel_length') IS NOT NULL OR
+    array_position(errors, 'vowel_mispronunciation') IS NOT NULL OR
+    array_position(errors, 'aspiration') IS NOT NULL OR
+    array_position(errors, 'consonant_error') IS NOT NULL OR
+    array_position(errors, 'final_consonant') IS NOT NULL OR
+    array_position(errors, 'rhythm_timing') IS NOT NULL OR
+    array_position(errors, 'stress_pattern') IS NOT NULL OR
+    array_position(errors, 'word_boundary') IS NOT NULL OR
+    array_position(errors, 'overall_fluency') IS NOT NULL
+  ),
   score INTEGER CHECK (score >= 0 AND score <= 100),
+  recommendation TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -72,17 +83,29 @@ CREATE TABLE pronunciation_sessions (
 -- INDEXES
 -- ============================================================================
 
--- Performance indexes
+-- Performance indexes with comments explaining their purpose
+
+-- Vocabulary indexes
 CREATE INDEX idx_vocabulary_user_review ON vocabulary(user_id, next_review);
-CREATE INDEX idx_vocabulary_status ON vocabulary(status);
+-- ^ Critical for spaced repetition: Fetching due words for a user
+
 CREATE INDEX idx_vocabulary_user_status ON vocabulary(user_id, status);
+-- ^ Used for filtering vocabulary by status per user
+
+-- Cached audio indexes
 CREATE INDEX idx_cached_audio_hash ON cached_audio(text_hash);
-CREATE INDEX idx_cached_audio_voice ON cached_audio(voice_name);
+-- ^ Critical for TTS caching: Fast lookups by text hash
+
 CREATE INDEX idx_cached_audio_type ON cached_audio(audio_type, content_type);
+-- ^ Used for filtering audio by type and content
+
+-- Generation logs index
 CREATE INDEX idx_generation_logs_user_date ON generation_logs(user_id, created_at);
-CREATE INDEX idx_pronunciation_user ON pronunciation_sessions(user_id);
-CREATE INDEX idx_pronunciation_vocab ON pronunciation_sessions(vocabulary_id);
+-- ^ Used for checking daily generation limits
+
+-- Pronunciation sessions index
 CREATE INDEX idx_pronunciation_user_created ON pronunciation_sessions(user_id, created_at);
+-- ^ Used for fetching recent pronunciation sessions
 
 -- ============================================================================
 -- ROW LEVEL SECURITY
@@ -105,7 +128,9 @@ BEGIN
     END LOOP;
 END $$;
 
-CREATE POLICY "cached_audio_access" ON cached_audio FOR ALL USING (true);
+-- Cached audio policies - allow authenticated users to read, service role to write
+CREATE POLICY "cached_audio_read" ON cached_audio FOR SELECT USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+CREATE POLICY "cached_audio_write" ON cached_audio FOR INSERT WITH CHECK (auth.role() = 'authenticated' OR auth.role() = 'service_role');
 
 -- ============================================================================
 -- STORAGE SETUP
@@ -118,8 +143,10 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage policies
-CREATE POLICY "audio_cache_read" ON storage.objects FOR SELECT USING (bucket_id = 'audio-cache');
-CREATE POLICY "audio_cache_write" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'audio-cache' AND auth.role() = 'authenticated');
+CREATE POLICY "audio_cache_read" ON storage.objects FOR SELECT USING (bucket_id = 'audio-cache' AND auth.role() IN ('authenticated', 'service_role'));
+CREATE POLICY "audio_cache_write" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'audio-cache' AND auth.role() IN ('authenticated', 'service_role'));
+CREATE POLICY "audio_cache_update" ON storage.objects FOR UPDATE USING (bucket_id = 'audio-cache' AND auth.role() IN ('authenticated', 'service_role'));
+CREATE POLICY "audio_cache_delete" ON storage.objects FOR DELETE USING (bucket_id = 'audio-cache' AND auth.role() IN ('authenticated', 'service_role'));
 
 -- ============================================================================
 -- FUNCTIONS
@@ -170,16 +197,28 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION get_user_pronunciation_stats(user_uuid UUID)
-RETURNS TABLE(total_sessions INTEGER, today_sessions INTEGER, avg_score DECIMAL, words_practiced INTEGER, sentences_practiced INTEGER) AS $$
+-- Simple function to get pronunciation sessions for analysis
+CREATE OR REPLACE FUNCTION get_user_pronunciation_sessions(user_uuid UUID, days_back INTEGER DEFAULT 30)
+RETURNS TABLE(
+  id UUID,
+  content TEXT,
+  content_type TEXT,
+  errors TEXT[],
+  score INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE
+) AS $$
 BEGIN
   RETURN QUERY SELECT 
-    COUNT(*)::INTEGER,
-    COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE)::INTEGER,
-    AVG(score)::DECIMAL,
-    COUNT(*) FILTER (WHERE practice_mode = 'word')::INTEGER,
-    COUNT(*) FILTER (WHERE practice_mode = 'sentence')::INTEGER
-  FROM pronunciation_sessions WHERE user_id = user_uuid;
+    ps.id,
+    ps.content,
+    ps.content_type,
+    ps.errors,
+    ps.score,
+    ps.created_at
+  FROM pronunciation_sessions ps
+  WHERE ps.user_id = user_uuid
+    AND ps.created_at >= NOW() - INTERVAL '1 day' * days_back
+  ORDER BY ps.created_at DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

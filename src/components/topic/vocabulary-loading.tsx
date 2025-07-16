@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 
 const loadingSteps = [
   "🧠 Analyzing topic...",
@@ -53,22 +54,11 @@ export function VocabularyLoading() {
             </p>
           </div>
 
-          {/* Progress bars */}
           <div className="space-y-2">
-            {/* <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Progress</span>
-              <span>
-                {Math.round(((currentStep + 1) / loadingSteps.length) * 100)}%
-              </span>
-            </div> */}
-            <div className="w-full bg-secondary rounded-full h-2">
-              <div
-                className="bg-primary h-2 rounded-full transition-all duration-1000 ease-out"
-                style={{
-                  width: `${((currentStep + 1) / loadingSteps.length) * 100}%`,
-                }}
-              ></div>
-            </div>
+            <Progress
+              value={((currentStep + 1) / loadingSteps.length) * 100}
+              className="h-2"
+            />
           </div>
 
           {/* Fun animated elements */}

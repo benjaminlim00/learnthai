@@ -15,10 +15,12 @@ import {
   CreateVocabularyInput,
   UpdateVocabularyInput,
 } from "@/lib/validation"
-import { getDefaultSM2Values } from "@/lib/spaced-repetition"
+import { getDefaultSM2Values } from "@/lib/services/spaced-repetition"
 import { User } from "@supabase/supabase-js"
+import { VocabularyWord } from "@/types/database"
 
 // POST - Create vocabulary word
+//TODO: we need to rate limit
 export const POST = withAuthAndValidation(
   async (
     request: NextRequest,
@@ -94,7 +96,7 @@ export const GET = withAuth(async (request: NextRequest, user: User) => {
       return errorResponse("Failed to fetch vocabulary", 500)
     }
 
-    return successResponse({ words: data })
+    return successResponse({ words: data as VocabularyWord[] })
   } catch (error) {
     console.error("Error in vocabulary GET:", error)
     return errorResponse("Internal server error", 500)

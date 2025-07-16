@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { ProtectedRoute } from "@/components/shared/ProtectedRoute"
+import { ProtectedRoute, LoadingState } from "@/components/shared"
 import {
   ProfileInfo,
   LearningStats,
@@ -95,12 +95,7 @@ export default function AccountPage() {
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading account...</p>
-          </div>
-        </div>
+        <LoadingState variant="page" text="Loading account..." />
       </ProtectedRoute>
     )
   }

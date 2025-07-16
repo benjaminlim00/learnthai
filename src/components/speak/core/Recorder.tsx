@@ -10,6 +10,7 @@ interface RecorderProps {
   isProcessing: boolean
 }
 
+// TODO: we need to cap the max recording time to 15seconds
 export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
@@ -104,12 +105,10 @@ export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
   if (hasPermission === null) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <div className="text-center">
-            <p className="text-muted-foreground">
-              Checking microphone permissions...
-            </p>
-          </div>
+        <CardContent className="p-6 text-center">
+          <p className="text-muted-foreground">
+            Checking microphone permissions...
+          </p>
         </CardContent>
       </Card>
     )
@@ -119,14 +118,14 @@ export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
     return (
       <Card>
         <CardContent className="p-6">
-          <div className="text-center">
+          <section className="text-center">
             <MicOff className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground mb-4">
               {error ||
                 "Microphone access is required for pronunciation practice"}
             </p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
-          </div>
+          </section>
         </CardContent>
       </Card>
     )
@@ -135,15 +134,15 @@ export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
   return (
     <Card>
       <CardContent className="p-6">
-        <div className="text-center space-y-4">
+        <section className="text-center space-y-4">
           {isRecording ? (
             <>
-              <div className="flex items-center justify-center space-x-2">
+              <header className="flex items-center justify-center space-x-2">
                 <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                <span className="text-lg font-mono">
+                <time className="text-lg font-mono">
                   {formatTime(recordingTime)}
-                </span>
-              </div>
+                </time>
+              </header>
               <p className="text-muted-foreground">
                 Recording... Speak the sentence clearly
               </p>
@@ -176,7 +175,7 @@ export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
           )}
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
-        </div>
+        </section>
       </CardContent>
     </Card>
   )

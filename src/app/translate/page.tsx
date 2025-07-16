@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { ProtectedRoute } from "@/components/shared/ProtectedRoute"
+import { ProtectedRoute, LoadingSpinner } from "@/components/shared"
 
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -235,14 +236,13 @@ export default function TranslatePage() {
                 <Label htmlFor="input-text">
                   {direction === "en-th" ? "English Text" : "Thai Text"}
                 </Label>
-                <textarea
+                <Textarea
                   id="input-text"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   placeholder={`Enter ${
                     direction === "en-th" ? "English" : "Thai"
                   } text to translate...`}
-                  className="w-full min-h-[120px] p-3 border border-input bg-background text-foreground rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 />
               </div>
 
@@ -336,12 +336,7 @@ export default function TranslatePage() {
             <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="text-center space-y-3">
-                    <div className="w-8 h-8 mx-auto rounded-full border-4 border-primary/20 border-t-primary animate-spin"></div>
-                    <p className="text-muted-foreground">
-                      Translating your text...
-                    </p>
-                  </div>
+                  <LoadingSpinner text="Translating your text..." />
                 </div>
               ) : (
                 <div className="space-y-3">

@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { LoadingSpinner } from "@/components/shared"
 import { Trash2, AlertCircle } from "lucide-react"
 
 interface DeleteConfirmationModalProps {
@@ -46,11 +47,9 @@ export function DeleteConfirmationModal({
           <div className="p-4 bg-muted rounded-md">
             <div className="font-medium text-foreground mb-2">
               {word.word}
-              {word.word_romanization && (
-                <span className="text-muted-foreground ml-2">
-                  ({word.word_romanization})
-                </span>
-              )}
+              <span className="text-muted-foreground ml-2">
+                ({word.word_romanization})
+              </span>
             </div>
             <div className="text-sm text-muted-foreground">
               {word.translation}
@@ -89,7 +88,7 @@ export function DeleteConfirmationModal({
             >
               {isDeleting ? (
                 <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                  <LoadingSpinner size="sm" variant="current" />
                   Deleting...
                 </div>
               ) : (

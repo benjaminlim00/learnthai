@@ -16,7 +16,7 @@ import {
   User,
   Mic,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils/style"
 
 // Sidebar context for managing state
 const SidebarContext = createContext<{

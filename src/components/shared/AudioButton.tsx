@@ -3,10 +3,11 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Volume2, VolumeX } from "lucide-react"
+import { ContentType } from "@/types/pronunciation"
 
 interface AudioButtonProps {
   text: string
-  contentType: "word" | "sentence"
+  contentType: ContentType
   size?: "sm" | "default" | "lg" | "icon"
   variant?: "ghost" | "outline" | "default"
   className?: string

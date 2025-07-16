@@ -1,6 +1,7 @@
 import { createHash } from "crypto"
 import { supabase } from "@/lib/supabase"
 import type { CachedAudio } from "@/types/database"
+import { AudioType, ContentType } from "@/types/pronunciation"
 
 /**
  * Generate a unique hash for TTS parameters to use as cache key
@@ -10,11 +11,9 @@ export function generateAudioHash(
   model: string,
   voice: string,
   speed: number,
-  contentType?: string
+  contentType: string
 ): string {
-  const combined = contentType
-    ? `${text}|${model}|${voice}|${speed}|${contentType}`
-    : `${text}|${model}|${voice}|${speed}`
+  const combined = `${text}|${model}|${voice}|${speed}|${contentType}`
   return createHash("sha256").update(combined).digest("hex")
 }
 
@@ -24,11 +23,11 @@ export function generateAudioHash(
 export async function getCachedAudio(
   textHash: string
 ): Promise<CachedAudio | null> {
-  const { data, error } = await supabase
+  const query = supabase
     .from("cached_audio")
     .select("*")
     .eq("text_hash", textHash)
-    .single()
+  const { data, error } = await query.single()
 
   if (error || !data) {
     return null
@@ -44,7 +43,9 @@ export async function cacheAudio(
   textHash: string,
   textContent: string,
   voice: string,
-  audioBuffer: ArrayBuffer
+  audioBuffer: ArrayBuffer,
+  audioType: AudioType,
+  contentType: ContentType
 ): Promise<CachedAudio | null> {
   try {
     // Generate unique filename
@@ -68,6 +69,8 @@ export async function cacheAudio(
       text_hash: textHash,
       text_content: textContent,
       voice_name: voice,
+      audio_type: audioType,
+      content_type: contentType,
       storage_path: uploadData.path,
       file_size: audioBuffer.byteLength,
     }
@@ -117,35 +120,35 @@ export async function getAudioFromStorage(
  * Clean up old cached audio files (optional maintenance function)
  * Remove files older than specified days
  */
-export async function cleanupOldCache(
-  olderThanDays: number = 30
-): Promise<void> {
-  const cutoffDate = new Date()
-  cutoffDate.setDate(cutoffDate.getDate() - olderThanDays)
+// export async function cleanupOldCache(
+//   olderThanDays: number = 30
+// ): Promise<void> {
+//   const cutoffDate = new Date()
+//   cutoffDate.setDate(cutoffDate.getDate() - olderThanDays)
 
-  try {
-    // Get old records
-    const { data: oldRecords, error: fetchError } = await supabase
-      .from("cached_audio")
-      .select("id, storage_path")
-      .lt("created_at", cutoffDate.toISOString())
+//   try {
+//     // Get old records
+//     const { data: oldRecords, error: fetchError } = await supabase
+//       .from("cached_audio")
+//       .select("id, storage_path")
+//       .lt("created_at", cutoffDate.toISOString())
 
-    if (fetchError || !oldRecords?.length) {
-      return
-    }
+//     if (fetchError || !oldRecords?.length) {
+//       return
+//     }
 
-    // Delete from storage
-    const filePaths = oldRecords.map(
-      (record: { storage_path: string }) => record.storage_path
-    )
-    await supabase.storage.from("audio-cache").remove(filePaths)
+//     // Delete from storage
+//     const filePaths = oldRecords.map(
+//       (record: { storage_path: string }) => record.storage_path
+//     )
+//     await supabase.storage.from("audio-cache").remove(filePaths)
 
-    // Delete from database
-    const ids = oldRecords.map((record: { id: string }) => record.id)
-    await supabase.from("cached_audio").delete().in("id", ids)
+//     // Delete from database
+//     const ids = oldRecords.map((record: { id: string }) => record.id)
+//     await supabase.from("cached_audio").delete().in("id", ids)
 
-    console.log(`Cleaned up ${oldRecords.length} old audio files`)
-  } catch (error) {
-    console.error("Error cleaning up old cache:", error)
-  }
-}
+//     console.log(`Cleaned up ${oldRecords.length} old audio files`)
+//   } catch (error) {
+//     console.error("Error cleaning up old cache:", error)
+//   }
+// }

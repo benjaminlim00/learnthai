@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { ProtectedRoute } from "@/components/shared/ProtectedRoute"
+import { ProtectedRoute, LoadingState } from "@/components/shared"
 import { VocabularyWord, SpacedRepetitionRating } from "@/types/database"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -55,7 +55,6 @@ export default function ReviewPage() {
   const [priorityStats, setPriorityStats] = useState<{
     totalDue: number
     priorityMode: string
-    priorityRange?: { highest: number; lowest: number }
   } | null>(null)
 
   // Delete modal states
@@ -124,9 +123,14 @@ export default function ReviewPage() {
   const fetchDueWords = async (priorityMode: "difficulty" | "time") => {
     try {
       const response = await fetch(
-        `/api/vocabulary/due?limit=20&priority=${priorityMode}&includeStats=true`
+        `/api/vocabulary/due?limit=20&priority=${priorityMode}`
       )
-      const data = await response.json()
+      const data: {
+        words: VocabularyWord[]
+        totalDue: number
+        priorityMode: string
+        error?: any
+      } = await response.json()
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to fetch due words")
@@ -137,7 +141,6 @@ export default function ReviewPage() {
       setPriorityStats({
         totalDue: data.totalDue || data.words.length,
         priorityMode: data.priorityMode || "difficulty",
-        priorityRange: data.priorityRange,
       })
 
       // Reset session state when new words are fetched
@@ -345,12 +348,7 @@ export default function ReviewPage() {
   if (computedState === "LOADING") {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading review session...</p>
-          </div>
-        </div>
+        <LoadingState variant="page" text="Loading review session..." />
       </ProtectedRoute>
     )
   }
@@ -405,10 +403,7 @@ export default function ReviewPage() {
 
         {/* State-based rendering */}
         {browseLoading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading vocabulary...</p>
-          </div>
+          <LoadingState text="Loading vocabulary..." />
         ) : mode === "browse" ? (
           <BrowseVocabulary
             words={allWords}

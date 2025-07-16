@@ -56,7 +56,9 @@ export function logError(
   if (process.env.NODE_ENV === "production") {
     console.error("API Error:", JSON.stringify(loggedError, null, 2))
     // TODO: Send to external logging service
-    // await sendToLoggingService(loggedError)
+    // Priority: High - Need to implement proper error tracking for production
+    // Suggested: Integrate with Sentry or similar service
+    // Example: await sendToLoggingService(loggedError)
   } else {
     console.error("API Error:", {
       message: error.message,

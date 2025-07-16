@@ -7,8 +7,16 @@ import {
   successResponse,
 } from "@/lib/middleware"
 import { getDueVocabularySchema } from "@/lib/validation"
-import { sortByPriority } from "@/lib/spaced-repetition"
+import { sortByDifficultyPriority } from "@/lib/services/spaced-repetition"
 import { User } from "@supabase/supabase-js"
+import { VocabularyWord } from "@/types/database"
+import { ScoreBreakdown } from "@/types/scoring"
+
+interface VocabularyWordWithPriority extends VocabularyWord {
+  priority_score: number
+  priority_reasoning: string[]
+  priority_breakdown: ScoreBreakdown
+}
 
 // GET - Fetch vocabulary words due for review
 export const GET = withAuth(async (request: NextRequest, user: User) => {
@@ -19,7 +27,7 @@ export const GET = withAuth(async (request: NextRequest, user: User) => {
       return errorResponse(validation.error, 400)
     }
 
-    const { limit, priority, includeStats } = validation.data
+    const { limit, priority } = validation.data
     const supabase = await createServerSupabaseClient(request)
 
     const currentTime = new Date()
@@ -44,32 +52,18 @@ export const GET = withAuth(async (request: NextRequest, user: User) => {
       return errorResponse("Failed to fetch due vocabulary", 500)
     }
 
-    let selectedWords = data
+    let selectedWords: VocabularyWord[] | VocabularyWordWithPriority[] = data
 
     // For difficulty-based ordering, use client-side priority scoring
     if (priority === "difficulty") {
-      const prioritizedWords = sortByPriority(data, currentTime)
+      const prioritizedWords = sortByDifficultyPriority(data)
       selectedWords = prioritizedWords.slice(0, limit)
     }
 
     const response = {
       words: selectedWords,
-      count: selectedWords.length,
-      ...(includeStats && {
-        totalDue: data.length,
-        priorityMode: priority,
-        ...(priority === "difficulty" &&
-          selectedWords.length > 0 && {
-            priorityRange: {
-              highest: Math.max(
-                ...selectedWords.map((w) => w.priority_score || 0)
-              ),
-              lowest: Math.min(
-                ...selectedWords.map((w) => w.priority_score || 0)
-              ),
-            },
-          }),
-      }),
+      totalDue: data.length,
+      priorityMode: priority,
     }
 
     return successResponse(response)

@@ -1,3 +1,5 @@
+import { Progress } from "@/components/ui/progress"
+
 interface ReviewStats {
   total: number
   completed: number
@@ -7,7 +9,6 @@ interface ReviewStats {
 interface PriorityStats {
   totalDue: number
   priorityMode: string
-  priorityRange?: { highest: number; lowest: number }
 }
 
 interface SessionStatsProps {
@@ -45,14 +46,10 @@ export function SessionStats({
       </div>
       {reviewStats.total > 0 && (
         <div className="mt-4">
-          <div className="w-full bg-secondary rounded-full h-2">
-            <div
-              className="bg-primary h-2 rounded-full transition-all duration-300"
-              style={{
-                width: `${(reviewStats.completed / reviewStats.total) * 100}%`,
-              }}
-            ></div>
-          </div>
+          <Progress
+            value={(reviewStats.completed / reviewStats.total) * 100}
+            className="h-2"
+          />
         </div>
       )}
 
@@ -74,13 +71,6 @@ export function SessionStats({
                       {" "}
                       Selected {reviewStats.total} most important out of{" "}
                       {priorityStats.totalDue} due words.
-                    </span>
-                  )}
-                  {priorityStats.priorityRange && (
-                    <span className="block mt-1 text-xs">
-                      Difficulty scores:{" "}
-                      {Math.round(priorityStats.priorityRange.lowest)} -{" "}
-                      {Math.round(priorityStats.priorityRange.highest)} points
                     </span>
                   )}
                 </>

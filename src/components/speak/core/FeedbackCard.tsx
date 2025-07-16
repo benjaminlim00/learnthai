@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   CheckCircle,
   XCircle,
@@ -11,32 +12,42 @@ import {
   Play,
   Pause,
 } from "lucide-react"
-
-interface FeedbackData {
-  transcribed: string
-  mistakes: string[]
-  tip: string
-  corrected: {
-    thai: string
-    romanization: string
-    translation: string
-  }
-}
+import { CorrectedData, PronunciationFeedback } from "@/lib/validation"
+import { ContentType } from "@/types/pronunciation"
 
 interface FeedbackCardProps {
-  feedback: FeedbackData
-  targetSentence: {
-    thai: string
-    romanization: string
-    translation: string
+  feedback: PronunciationFeedback
+  targetSentence: CorrectedData
+  contentType: ContentType
+}
+
+// Helper function to get badge variant and styling based on score
+const getScoreBadgeProps = (score: number) => {
+  if (score >= 85) {
+    return {
+      variant: "default" as const,
+      className:
+        "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full",
+    }
+  } else if (score >= 70) {
+    return {
+      variant: "secondary" as const,
+      className:
+        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded-full",
+    }
+  } else {
+    return {
+      variant: "destructive" as const,
+      className:
+        "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-full",
+    }
   }
-  practiceMode: "word" | "sentence"
 }
 
 export function FeedbackCard({
   feedback,
   targetSentence,
-  practiceMode,
+  contentType,
 }: FeedbackCardProps) {
   const hasNoMistakes = feedback.mistakes.length === 0
   const [isPlayingUserAudio, setIsPlayingUserAudio] = useState(false)
@@ -56,7 +67,7 @@ export function FeedbackCard({
         body: JSON.stringify({
           text: feedback.transcribed,
           audioType: "user",
-          contentType: practiceMode,
+          contentType: contentType,
         }),
       })
 
@@ -100,7 +111,7 @@ export function FeedbackCard({
         body: JSON.stringify({
           text: targetSentence.thai,
           audioType: "reference",
-          contentType: practiceMode,
+          contentType: contentType,
         }),
       })
 
@@ -131,7 +142,7 @@ export function FeedbackCard({
   }
 
   return (
-    <div className="space-y-4">
+    <article className="space-y-4">
       {/* Main Results */}
       <Card>
         <CardHeader>
@@ -147,10 +158,36 @@ export function FeedbackCard({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          {/* Pronunciation Score */}
+          <section className="mb-4 flex items-center justify-between p-3 rounded-lg border bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">
+                Pronunciation Score:
+              </span>
+              <Badge
+                variant={getScoreBadgeProps(feedback.score).variant}
+                className={`text-sm font-bold ${
+                  getScoreBadgeProps(feedback.score).className
+                }`}
+              >
+                {feedback.score}/100
+              </Badge>
+            </div>
+            <aside className="text-right">
+              <p className="text-xs text-muted-foreground">
+                {feedback.score >= 85
+                  ? "🌟 Excellent!"
+                  : feedback.score >= 70
+                  ? "👍 Good work!"
+                  : "💪 Keep practicing!"}
+              </p>
+            </aside>
+          </section>
+
+          <section className="space-y-4">
             {/* Success Message */}
             {hasNoMistakes ? (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <section className="p-4 bg-green-50 border border-green-200 rounded-lg">
                 <p className="text-green-800 font-medium">
                   🎉 Excellent work! Your pronunciation is spot-on.
                 </p>
@@ -158,14 +195,14 @@ export function FeedbackCard({
                   You said:{" "}
                   <span className="font-mono">{feedback.transcribed}</span>
                 </p>
-              </div>
+              </section>
             ) : (
               <>
                 {/* What User Said */}
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm text-muted-foreground">
+                <section className="space-y-2">
+                  <h3 className="font-medium text-sm text-muted-foreground">
                     What you said:
-                  </h4>
+                  </h3>
                   <p
                     className="text-lg font-medium rounded-lg p-3 border 
                     bg-orange-50 border-orange-200 text-orange-900
@@ -174,13 +211,13 @@ export function FeedbackCard({
                   >
                     {feedback.transcribed}
                   </p>
-                </div>
+                </section>
 
                 {/* What Should Be Said */}
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm text-muted-foreground">
+                <section className="space-y-2">
+                  <h3 className="font-medium text-sm text-muted-foreground">
                     Target pronunciation:
-                  </h4>
+                  </h3>
                   <p
                     className="text-lg font-medium rounded-lg p-3 border 
                     bg-green-50 border-green-200 text-green-900
@@ -189,57 +226,59 @@ export function FeedbackCard({
                   >
                     {targetSentence.thai}
                   </p>
-                </div>
+                </section>
               </>
             )}
 
             {/* Audio Comparison */}
-            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-              <h4 className="font-medium text-sm flex items-center gap-2">
-                <Volume2 className="w-4 h-4" />
-                Compare Audio
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={playUserAudio}
-                  disabled={isPlayingUserAudio}
-                  className={`flex items-center gap-2 ${
-                    isPlayingUserAudio
-                      ? "bg-orange-50 dark:bg-orange-950 border-orange-400 dark:border-orange-800 text-orange-900 dark:text-orange-200"
-                      : ""
-                  }`}
-                >
-                  {isPlayingUserAudio ? (
-                    <Pause className="w-4 h-4" />
-                  ) : (
-                    <Play className="w-4 h-4" />
-                  )}
-                  Your Version
-                </Button>
+            {!hasNoMistakes && (
+              <section className="bg-muted/50 rounded-lg p-4 space-y-3">
+                <header className="font-medium text-sm flex items-center gap-2">
+                  <Volume2 className="w-4 h-4" />
+                  Compare Audio
+                </header>
+                <nav className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={playUserAudio}
+                    disabled={isPlayingUserAudio}
+                    className={`flex items-center gap-2 ${
+                      isPlayingUserAudio
+                        ? "bg-orange-50 dark:bg-orange-950 border-orange-400 dark:border-orange-800 text-orange-900 dark:text-orange-200"
+                        : ""
+                    }`}
+                  >
+                    {isPlayingUserAudio ? (
+                      <Pause className="w-4 h-4" />
+                    ) : (
+                      <Play className="w-4 h-4" />
+                    )}
+                    Your Version
+                  </Button>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={playCorrectAudio}
-                  disabled={isPlayingCorrectAudio}
-                  className={`flex items-center gap-2 ${
-                    isPlayingCorrectAudio
-                      ? "bg-green-50 dark:bg-green-950 border-green-400 dark:border-green-800 text-green-900 dark:text-green-200"
-                      : ""
-                  }`}
-                >
-                  {isPlayingCorrectAudio ? (
-                    <Pause className="w-4 h-4" />
-                  ) : (
-                    <Play className="w-4 h-4" />
-                  )}
-                  Correct Version
-                </Button>
-              </div>
-            </div>
-          </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={playCorrectAudio}
+                    disabled={isPlayingCorrectAudio}
+                    className={`flex items-center gap-2 ${
+                      isPlayingCorrectAudio
+                        ? "bg-green-50 dark:bg-green-950 border-green-400 dark:border-green-800 text-green-900 dark:text-green-200"
+                        : ""
+                    }`}
+                  >
+                    {isPlayingCorrectAudio ? (
+                      <Pause className="w-4 h-4" />
+                    ) : (
+                      <Play className="w-4 h-4" />
+                    )}
+                    Correct Version
+                  </Button>
+                </nav>
+              </section>
+            )}
+          </section>
         </CardContent>
       </Card>
 
@@ -256,7 +295,7 @@ export function FeedbackCard({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2">
+                <ul className="space-y-2" role="list">
                   {feedback.mistakes.map((mistake, index) => (
                     <li key={index} className="flex items-start gap-2">
                       <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></span>
@@ -292,27 +331,23 @@ export function FeedbackCard({
                   Corrected Version
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <p className="text-lg font-medium">
-                    {feedback.corrected.thai}
+              <CardContent className="space-y-2">
+                <p className="text-lg font-medium">{feedback.corrected.thai}</p>
+                {feedback.corrected.romanization && (
+                  <p className="text-sm text-muted-foreground font-mono">
+                    {feedback.corrected.romanization}
                   </p>
-                  {feedback.corrected.romanization && (
-                    <p className="text-sm text-muted-foreground font-mono">
-                      {feedback.corrected.romanization}
-                    </p>
-                  )}
-                  {feedback.corrected.translation && (
-                    <p className="text-sm text-muted-foreground">
-                      {feedback.corrected.translation}
-                    </p>
-                  )}
-                </div>
+                )}
+                {feedback.corrected.translation && (
+                  <p className="text-sm text-muted-foreground">
+                    {feedback.corrected.translation}
+                  </p>
+                )}
               </CardContent>
             </Card>
           )}
         </>
       )}
-    </div>
+    </article>
   )
 }

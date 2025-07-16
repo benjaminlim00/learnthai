@@ -1,17 +1,20 @@
+import { AudioType, ContentType } from "./pronunciation"
+
 // Re-export validation types from the validation lib
 export type { GPTVocabularyWord, GPTVocabularyResponse } from "@/lib/validation"
 
-// Keep the original VocabularyWord interface for database records with SM-2 fields
+export type VocabStatus = "new" | "learning" | "mastered"
+
 export interface VocabularyWord {
   id: string
   user_id: string
   word: string
-  word_romanization?: string
+  word_romanization: string
   translation: string
   sentence: string
-  sentence_romanization?: string
-  sentence_translation?: string
-  status: "new" | "learning" | "mastered"
+  sentence_romanization: string
+  sentence_translation: string
+  status: VocabStatus
   // SM-2 Spaced Repetition fields
   interval: number // Days until next review
   ease_factor: number // Ease factor for SM-2 algorithm (default 2.5)
@@ -19,12 +22,7 @@ export interface VocabularyWord {
   next_review: string // ISO timestamp for next review
   created_at: string
   updated_at: string
-}
-
-export interface User {
-  id: string
-  email: string
-  created_at: string
+  last_reviewed: string
 }
 
 export interface UserProfile {
@@ -52,6 +50,8 @@ export interface CachedAudio {
   text_hash: string // SHA-256 hash of the text content
   text_content: string // Original text for reference
   voice_name: string // e.g., "nova"
+  audio_type: AudioType // Type of audio
+  content_type: ContentType // Type of content
   storage_path: string // Path in Supabase Storage
   file_size: number // File size in bytes
   created_at: string

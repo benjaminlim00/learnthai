@@ -9,11 +9,13 @@ import {
   spacedRepetitionRatingSchema,
   SpacedRepetitionRatingInput,
 } from "@/lib/validation"
-import { calculateSM2 } from "@/lib/spaced-repetition"
+import { calculateSM2 } from "@/lib/services/spaced-repetition"
 import { SpacedRepetitionRating } from "@/types/database"
 import { User } from "@supabase/supabase-js"
 
 // POST - Rate a vocabulary word and update SM-2 values
+//TODO: we need to rate limit
+
 export const POST = withAuthAndValidation(
   async (
     request: NextRequest,
