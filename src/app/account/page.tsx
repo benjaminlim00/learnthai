@@ -44,6 +44,7 @@ export default function AccountPage() {
       fetchStats()
       fetchGenerationStats()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   const fetchStats = async () => {

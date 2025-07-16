@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { BarChart3, Clock, BookOpen } from "lucide-react"
+import { BarChart3, BookOpen } from "lucide-react"
 import { Weakness, WeaknessPriority } from "@/types/pronunciation"
 import {
   generateErrorDescription,
@@ -67,18 +67,18 @@ const getPriorityBadgeVariant = (
 }
 
 // Format last practiced date helper
-const formatLastPracticed = (dateString: string) => {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+// const formatLastPracticed = (dateString: string) => {
+//   const date = new Date(dateString)
+//   const now = new Date()
+//   const diffMs = now.getTime() - date.getTime()
+//   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-  if (diffDays === 0) return "Today"
-  if (diffDays === 1) return "Yesterday"
-  if (diffDays < 7) return `${diffDays} days ago`
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
-  return `${Math.floor(diffDays / 30)} months ago`
-}
+//   if (diffDays === 0) return "Today"
+//   if (diffDays === 1) return "Yesterday"
+//   if (diffDays < 7) return `${diffDays} days ago`
+//   if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
+//   return `${Math.floor(diffDays / 30)} months ago`
+// }
 
 // Progress bar color helper
 const getProgressBarColor = (errorRate: number) => {

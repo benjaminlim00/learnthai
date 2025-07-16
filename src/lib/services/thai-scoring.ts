@@ -1,7 +1,6 @@
 import { ErrorType, ThaiTone, ContentType } from "@/types/pronunciation"
 import { PronunciationFeedback } from "../validation"
 import {
-  CalulatedScore,
   CategorizedError,
   PhoneticDetails,
   VocabSeverity,

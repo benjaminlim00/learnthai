@@ -129,7 +129,7 @@ export default function ReviewPage() {
         words: VocabularyWord[]
         totalDue: number
         priorityMode: string
-        error?: any
+        error?: string
       } = await response.json()
 
       if (!response.ok) {

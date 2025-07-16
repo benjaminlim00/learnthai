@@ -40,8 +40,6 @@ export async function POST(request: NextRequest) {
     const targetRomanization = formData.get("targetRomanization") as string
     const targetTranslation = formData.get("targetTranslation") as string
     const contentType = formData.get("contentType") as string
-    // optional
-    const vocabularyId = formData.get("vocabularyId") as string
 
     if (!audioFile) {
       return NextResponse.json(

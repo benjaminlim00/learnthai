@@ -6,7 +6,7 @@ import {
   errorResponse,
   successResponse,
 } from "@/lib/middleware"
-import { withRateLimit, vocabGenerationLimiter } from "@/lib/rate-limit"
+import { withRateLimitAndAuth, generalApiLimiter } from "@/lib/rate-limit"
 import {
   generateVocabSchema,
   GenerateVocabInput,
@@ -266,4 +266,7 @@ Respond with a JSON object containing a "vocabulary" array with exactly ONE entr
 )
 
 // Apply rate limiting to the generate vocab handler
-export const POST = withRateLimit(generateVocabHandler, vocabGenerationLimiter)
+export const POST = withRateLimitAndAuth(
+  generateVocabHandler,
+  generalApiLimiter
+)

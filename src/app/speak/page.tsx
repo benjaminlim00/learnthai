@@ -62,14 +62,6 @@ export default function SpeakPage() {
     fetchVocabulary()
   }, [])
 
-  //TODO: find out what this does
-  // Update step when vocabulary is selected
-  useEffect(() => {
-    if (selectedVocab && currentStep === "select") {
-      setCurrentStep("practice")
-    }
-  }, [selectedVocab, currentStep])
-
   // Get current practice content based on selected vocabulary and mode
   const getCurrentPractice = (): CorrectedData => {
     if (!selectedVocab) {
@@ -157,11 +149,6 @@ export default function SpeakPage() {
       formData.append("targetRomanization", targetSentence.romanization)
       formData.append("targetTranslation", targetSentence.translation)
       formData.append("contentType", contentType)
-
-      // Include vocabulary ID if practicing a specific vocabulary word
-      if (selectedVocab) {
-        formData.append("vocabularyId", selectedVocab.id)
-      }
 
       const response = await fetch("/api/speak-feedback", {
         method: "POST",

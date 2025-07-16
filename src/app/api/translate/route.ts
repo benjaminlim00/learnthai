@@ -5,7 +5,7 @@ import {
   errorResponse,
   successResponse,
 } from "@/lib/middleware"
-import { withRateLimit, translationLimiter } from "@/lib/rate-limit"
+import { withRateLimitAndAuth, generalApiLimiter } from "@/lib/rate-limit"
 import { translateSchema, TranslateInput } from "@/lib/validation"
 import { User } from "@supabase/supabase-js"
 import { env } from "@/lib/env"
@@ -109,4 +109,4 @@ ${text}`
 )
 
 // Apply rate limiting to the translate handler
-export const POST = withRateLimit(translateHandler, translationLimiter)
+export const POST = withRateLimitAndAuth(translateHandler, generalApiLimiter)

@@ -34,25 +34,6 @@ const createMockRateLimiter = () => ({
   }),
 })
 
-// Create rate limiters for different endpoints
-export const vocabGenerationLimiter = redis
-  ? new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(10, "1 h"),
-      analytics: true,
-      prefix: "@learnthai/ratelimit/vocab",
-    })
-  : createMockRateLimiter()
-
-export const translationLimiter = redis
-  ? new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(10, "1 d"),
-      analytics: true,
-      prefix: "@learnthai/ratelimit/translate",
-    })
-  : createMockRateLimiter()
-
 export const generalApiLimiter = redis
   ? new Ratelimit({
       redis,
@@ -63,7 +44,7 @@ export const generalApiLimiter = redis
   : createMockRateLimiter()
 
 // Rate limiting middleware
-export const withRateLimit = (
+const withRateLimit = (
   handler: (request: NextRequest) => Promise<NextResponse>,
   limiter: Ratelimit | ReturnType<typeof createMockRateLimiter>,
   getIdentifier: (request: NextRequest) => string
@@ -131,7 +112,7 @@ const getClientIdentifier = (request: NextRequest): string => {
 }
 
 // Get user identifier for rate limiting
-export const getUserIdentifier = (request: NextRequest): string => {
+const getUserIdentifier = (request: NextRequest): string => {
   // TODO: This should be called after authentication middleware
   // Priority: Medium - Need proper user identification for rate limiting
   // Current implementation uses IP as fallback which is not ideal
@@ -145,5 +126,10 @@ export const withRateLimitAndAuth = (
   handler: (request: NextRequest) => Promise<NextResponse>,
   limiter: Ratelimit | ReturnType<typeof createMockRateLimiter>
 ) => {
+  // TODO: Implement auth middleware
+  // Priority: High - Need to implement auth middleware
+  // Current implementation uses IP as fallback which is not ideal
+  // Should integrate with Supabase auth to get actual user ID
+  // For now, use IP as fallback
   return withRateLimit(handler, limiter, getUserIdentifier)
 }
