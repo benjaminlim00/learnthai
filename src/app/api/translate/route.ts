@@ -6,7 +6,12 @@ import {
   successResponse,
 } from "@/lib/middleware"
 import { withRateLimitAndAuth, generalApiLimiter } from "@/lib/rate-limit"
-import { translateSchema, TranslateInput } from "@/lib/validation"
+import {
+  translateSchema,
+  TranslateInput,
+  translateResponseSchema,
+  TranslationLanguage,
+} from "@/lib/validation"
 import { User } from "@supabase/supabase-js"
 import { env } from "@/lib/env"
 
@@ -14,45 +19,47 @@ const openai = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
 })
 
+// Helper function to detect language
+function detectLanguage(text: string): TranslationLanguage {
+  // Simple heuristic: if the text contains Thai characters, it's Thai
+  const thaiPattern = /[\u0E00-\u0E7F]/
+  return thaiPattern.test(text) ? "thai" : "english"
+}
+
 // POST - Translate text
 const translateHandler = withAuthAndValidation(
   async (request: NextRequest, user: User, validatedData: TranslateInput) => {
     try {
-      const { text, sourceLanguage, targetLanguage } = validatedData
+      const { text } = validatedData
+      const detectedLanguage = detectLanguage(text)
 
-      // Check if we need romanization (English to Thai)
-      const needsRomanization =
-        sourceLanguage === "English" && targetLanguage === "Thai"
-
-      let systemPrompt: string
-      let userPrompt: string
-
-      if (needsRomanization) {
-        systemPrompt = `You are a professional translator specializing in Thai and English languages. When translating from English to Thai, provide both the Thai translation and its romanization using the Royal Thai General System of Transcription.
+      const systemPrompt = `You are a professional translator specializing in Thai and English languages. When translating, provide comprehensive information including usage examples and example sentences.
 
 Respond in the following JSON format:
 {
-  "translation": "Thai text here",
-  "romanization": "romanized Thai text here"
+  "translatedText": "primary translation",
+  "romanization": "romanized Thai text (only for Thai text)",
+  "usage": ["usage example 1", "usage example 2", "usage example 3"],
+  "exampleSentences": [
+    {
+      "text": "example sentence in target language",
+      "translation": "translation of example sentence",
+      "romanization": "romanization (only for Thai text)"
+    }
+  ]
 }
 
-Provide accurate, natural translations without any additional commentary.`
+For Thai text, always provide romanization using the Royal Thai General System of Transcription.
+Provide 2-3 example sentences that show different contexts or usages. The example sentence should not be overly similar to the text provided by the user. If the input is a long sentence, summarize its meaning and include that summary inside the 'usage' field.
+Keep example sentences natural and practical.`
 
-        userPrompt = `Translate the following English text to Thai and provide its romanization:
-
-${text}`
-      } else {
-        systemPrompt = `You are a professional translator specializing in Thai and English languages. Provide accurate, natural translations without any additional commentary or explanations. Return only the translated text.`
-
-        userPrompt = `Translate the following ${sourceLanguage} text to ${targetLanguage}:
+      const userPrompt = `Translate and provide detailed information for this ${detectedLanguage} text:
 
 ${text}`
-      }
 
       let completion: OpenAI.Chat.Completions.ChatCompletion
       try {
         completion = await openai.chat.completions.create({
-          // we use this prompt to translate text
           model: "gpt-4o-mini",
           messages: [
             {
@@ -64,11 +71,9 @@ ${text}`
               content: userPrompt,
             },
           ],
-          temperature: 0.3, // Lower temperature for more consistent translations
-          max_tokens: 1000,
-          ...(needsRomanization && {
-            response_format: { type: "json_object" },
-          }),
+          temperature: 0.3,
+          max_tokens: 1500,
+          response_format: { type: "json_object" },
         })
       } catch (error) {
         console.error("OpenAI API error:", error)
@@ -80,25 +85,20 @@ ${text}`
         return errorResponse("No translation received from OpenAI", 500)
       }
 
-      if (needsRomanization) {
-        try {
-          const parsed = JSON.parse(responseContent)
-          return successResponse({
-            translatedText: parsed.translation,
-            romanization: parsed.romanization,
-            sourceLanguage,
-            targetLanguage,
-          })
-        } catch (error) {
-          console.error("Failed to parse romanization response:", error)
-          return errorResponse("Failed to parse romanization response", 500)
-        }
-      } else {
-        return successResponse({
-          translatedText: responseContent,
-          sourceLanguage,
-          targetLanguage,
+      try {
+        const parsed = JSON.parse(responseContent)
+        // Validate the response against our schema
+        const validatedResponse = translateResponseSchema.parse({
+          ...parsed,
+          sourceLanguage: detectedLanguage,
         })
+        return successResponse(validatedResponse)
+      } catch (error) {
+        console.error(
+          "Failed to parse or validate translation response:",
+          error
+        )
+        return errorResponse("Failed to parse translation response", 500)
       }
     } catch (error) {
       console.error("Error in translate handler:", error)

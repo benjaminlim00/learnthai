@@ -31,18 +31,30 @@ export const generateVocabSchema = z
 
 export type GenerateVocabInput = z.infer<typeof generateVocabSchema>
 
+export type TranslationLanguage = "english" | "thai"
+
 // Translation API validation
 export const translateSchema = z.object({
   text: z.string().min(1, "Text is required").max(500, "Text too long"),
-  sourceLanguage: z.enum(["English", "Thai"], {
-    required_error: "Source language is required",
-  }),
-  targetLanguage: z.enum(["English", "Thai"], {
-    required_error: "Target language is required",
-  }),
 })
 
 export type TranslateInput = z.infer<typeof translateSchema>
+
+export const translateResponseSchema = z.object({
+  translatedText: z.string(),
+  romanization: z.string().optional(),
+  usage: z.array(z.string()),
+  exampleSentences: z.array(
+    z.object({
+      text: z.string(),
+      translation: z.string(),
+      romanization: z.string().optional(),
+    })
+  ),
+  sourceLanguage: z.enum(["english", "thai"] as const),
+})
+
+export type TranslateResponse = z.infer<typeof translateResponseSchema>
 
 // Vocabulary word creation validation (userId removed - comes from auth)
 export const createVocabularySchema = z.object({

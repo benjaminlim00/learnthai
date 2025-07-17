@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { VocabularyLoading } from "@/components/topic/vocabulary-loading"
 import { AudioButton } from "@/components/shared/AudioButton"
-import { BookOpen, History, X, Check } from "lucide-react"
+import { VocabularyHistory } from "@/components/topic/VocabularyHistory"
+import { BookOpen, Check, History } from "lucide-react"
 
 interface UsageStats {
   dailyUsed: number
@@ -266,15 +267,6 @@ export default function TopicPage() {
     }
   }
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
-
   return (
     <ProtectedRoute>
       <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
@@ -334,7 +326,6 @@ export default function TopicPage() {
                   className="gap-2"
                 >
                   <History className="h-4 w-4" />
-                  History ({history.length})
                 </Button>
               </div>
             </CardHeader>
@@ -439,77 +430,14 @@ export default function TopicPage() {
           </Card>
         )}
 
-        {/* History Section */}
-        {showHistory && history.length > 0 && (
-          <Card className="mb-8">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Vocabulary History</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button
-                    onClick={clearHistory}
-                    variant="outline"
-                    size="sm"
-                    className="text-destructive hover:text-destructive"
-                  >
-                    Clear History
-                  </Button>
-                  <Button
-                    onClick={() => setShowHistory(false)}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {history.map((result) => (
-                  <Card
-                    key={result.id}
-                    className="bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
-                    onClick={() => loadFromHistory(result)}
-                  >
-                    <CardContent className="pt-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="text-xs text-muted-foreground">
-                          {formatDate(result.timestamp)} •{" "}
-                          {result.vocabWords.length} words
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-foreground">
-                          Topic: {result.topic}
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          {result.vocabWords.slice(0, 5).map((word, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded"
-                            >
-                              <span>{word.word}</span>
-                              <AudioButton
-                                text={word.word}
-                                contentType="word"
-                                size="sm"
-                              />
-                            </div>
-                          ))}
-                          {result.vocabWords.length > 5 && (
-                            <span className="text-xs text-muted-foreground px-2 py-1">
-                              +{result.vocabWords.length - 5} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+        {showHistory && (
+          <VocabularyHistory
+            history={history}
+            showHistory={showHistory}
+            onToggleHistory={() => setShowHistory(false)}
+            onClearHistory={clearHistory}
+            onLoadFromHistory={loadFromHistory}
+          />
         )}
 
         {vocabWords.length > 0 && (
