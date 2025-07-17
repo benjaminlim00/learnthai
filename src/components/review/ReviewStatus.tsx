@@ -63,7 +63,7 @@ export function ReviewStatus({
                 </Button>
               )}
               <div className="text-sm text-muted-foreground">
-                <a href="/topic" className="text-primary hover:underline">
+                <a href="/generate" className="text-primary hover:underline">
                   Generate more vocabulary
                 </a>
               </div>
@@ -88,7 +88,7 @@ export function ReviewStatus({
               vocabulary to start your spaced repetition learning!
             </p>
             <Button
-              onClick={() => (window.location.href = "/topic")}
+              onClick={() => (window.location.href = "/generate")}
               className="w-full sm:w-auto"
             >
               Generate Vocabulary
@@ -120,7 +120,7 @@ export function ReviewStatus({
               {updatingWords ? "Updating..." : "Review All Learned"}
             </Button>
             <div className="text-sm text-muted-foreground mt-4">
-              <a href="/topic" className="text-primary hover:underline">
+              <a href="/generate" className="text-primary hover:underline">
                 Generate more vocabulary
               </a>
             </div>
@@ -147,7 +147,7 @@ export function ReviewStatus({
               Start Session
             </Button>
             <div className="text-sm text-muted-foreground mt-4">
-              <a href="/topic" className="text-primary hover:underline">
+              <a href="/generate" className="text-primary hover:underline">
                 Generate more vocabulary
               </a>
             </div>

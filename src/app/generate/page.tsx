@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { ProtectedRoute, LoadingSpinner } from "@/components/shared"
+import { ProtectedRoute } from "@/components/shared"
 
 import { GPTVocabularyWord } from "@/lib/validation"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { VocabularyLoading } from "@/components/topic/vocabulary-loading"
+import { VocabularyLoading } from "@/components/generate/vocabulary-loading"
 import { AudioButton } from "@/components/shared/AudioButton"
-import { VocabularyHistory } from "@/components/topic/VocabularyHistory"
+import { VocabularyHistory } from "@/components/generate/VocabularyHistory"
 import { BookOpen, Check, History } from "lucide-react"
 
 interface UsageStats {
@@ -29,7 +29,7 @@ interface VocabularyResult {
 const STORAGE_KEY = "learnthai-vocabulary-history"
 const MAX_HISTORY = 10
 
-export default function TopicPage() {
+export default function GeneratePage() {
   const [mode, setMode] = useState<"topic" | "single">("topic")
   const [topic, setTopic] = useState("")
   const [word, setWord] = useState("")

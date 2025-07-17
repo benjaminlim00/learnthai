@@ -23,7 +23,7 @@ export default function Home() {
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {
-      router.push("/topic")
+      router.push("/generate")
     }
   }, [user, router])
 
@@ -39,7 +39,7 @@ export default function Home() {
         setMessage("Check your email for a confirmation link!")
       } else {
         await signIn(email, password)
-        router.push("/topic")
+        router.push("/generate")
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred")

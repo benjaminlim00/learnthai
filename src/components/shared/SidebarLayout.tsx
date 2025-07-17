@@ -42,7 +42,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: "/topic", label: "Generate", icon: BookOpen },
+  { href: "/generate", label: "Generate", icon: BookOpen },
   { href: "/translate", label: "Translate", icon: Languages },
   { href: "/review", label: "Review", icon: RotateCcw },
   { href: "/speak", label: "Speak", icon: Mic },

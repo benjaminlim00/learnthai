@@ -9,7 +9,7 @@ const features = [
   {
     title: "Thai-English Translation",
     description:
-      "Bidirectional translation with romanization support for Thai text",
+      "Bidirectional translation with romanization support for Thai text using the Royal Thai General System of Transcription",
   },
   {
     title: "Spaced Repetition",
@@ -17,9 +17,14 @@ const features = [
       "Review your saved vocabulary with an intelligent spaced repetition system",
   },
   {
-    title: "Romanization Support",
+    title: "Speech Training",
     description:
-      "All Thai words include romanization using the Royal Thai General System of Transcription",
+      "Perfect your Thai pronunciation with our cutting-edge speech recognition technology that provides instant feedback",
+  },
+  {
+    title: "Smart Coach",
+    description:
+      "Revolutionize your learning with personalized AI coaching that identifies your weaknesses and helps you overcome them",
   },
 ]
 

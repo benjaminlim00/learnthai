@@ -24,10 +24,11 @@ export function ModeToggle({
     <div className="flex justify-center mt-6">
       <Tabs value={viewMode} onValueChange={handleValueChange}>
         <TabsList>
-          <TabsTrigger value="review" className="gap-2">
+          <TabsTrigger value="review" className="gap-2 ">
             <Play className="h-4 w-4" />
             Review Session
           </TabsTrigger>
+
           <TabsTrigger value="browse" className="gap-2">
             <BookOpen className="h-4 w-4" />
             Browse Vocabulary

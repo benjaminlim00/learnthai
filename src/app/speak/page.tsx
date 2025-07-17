@@ -358,7 +358,7 @@ export default function SpeakPage() {
                       You don&apos;t have any saved vocabulary yet.
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Generate some vocabulary words on the Topic page first,
+                      Generate some vocabulary words on the Generate page first,
                       then come back here to practice pronunciation!
                     </p>
                   </div>
