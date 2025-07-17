@@ -66,26 +66,18 @@ export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
     }
   }
 
-  const processRecognized = async (event: SpeechRecognitionEventArgs) => {
-    const result = event.result
-    if (result.reason === ResultReason.RecognizedSpeech) {
-      const text = (result as unknown as { privText: string }).privText
-      setRecognizedText(text)
-      // setRecognizedText("");
-      // await slowType(text);
-    }
-  }
-
-  const processRecognizing = async (event: SpeechRecognitionEventArgs) => {
-    const result = event.result
-    if (result.reason === ResultReason.RecognizingSpeech) {
-      const text = (result as unknown as { privText: string }).privText
-      setRecognizedText(text)
-    }
-  }
-
   const startRecording = async () => {
     try {
+      // Auto-stop after 15 seconds
+      setTimeout(() => {
+        stopRecording()
+      }, AUTO_STOP_RECORDING_TIME)
+
+      // Start timer
+      intervalRef.current = setInterval(() => {
+        setRecordingTime((prev) => prev + 1)
+      }, 1000)
+
       setIsRecording(true)
       setRecordingTime(0)
       setError(null)
@@ -103,36 +95,28 @@ export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
         audioConfig
       )
       recognizerRef.current = recognizer
+      recognizer.startContinuousRecognitionAsync()
 
-      recognizer.recognized = (s, e) => processRecognized(e)
-      recognizer.recognizing = (s, e) => processRecognizing(e)
-      recognizer.canceled = (s, e) => {
-        console.log(`Recognition canceled: ${e.reason}`)
-        if (e.reason === speechsdk.CancellationReason.Error) {
-          setError(`Recognition error: ${e.errorDetails}`)
+      const processRecognized = async (event: SpeechRecognitionEventArgs) => {
+        const result = event.result
+        if (result.reason === ResultReason.RecognizedSpeech) {
+          const text = (result as unknown as { privText: string }).privText
+          setRecognizedText(text)
+          // setRecognizedText("");
+          // await slowType(text);
         }
       }
 
-      recognizer.startContinuousRecognitionAsync(
-        () => {},
-        (err) => {
-          console.error("Error starting recognition:", err)
-          setError("Failed to start speech recognition")
-          setIsRecording(false)
+      const processRecognizing = async (event: SpeechRecognitionEventArgs) => {
+        const result = event.result
+        if (result.reason === ResultReason.RecognizingSpeech) {
+          const text = (result as unknown as { privText: string }).privText
+          setRecognizedText(text)
         }
-      )
+      }
 
-      // Auto-stop after 15 seconds
-      setTimeout(() => {
-        if (isRecording) {
-          stopRecording()
-        }
-      }, AUTO_STOP_RECORDING_TIME)
-
-      // Start timer
-      intervalRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1)
-      }, 1000)
+      recognizer.recognized = (s, e) => processRecognized(e)
+      recognizer.recognizing = (s, e) => processRecognizing(e)
     } catch (err) {
       setIsRecording(false)
       const errorMessage =
@@ -156,7 +140,7 @@ export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
         },
         (err) => {
           console.error("Error stopping recognition:", err)
-          setError("Error processing speech. Please try again.")
+          setError("Error stopping recording.")
           setIsRecording(false)
         }
       )

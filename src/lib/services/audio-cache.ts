@@ -48,6 +48,7 @@ export async function cacheAudio(
   contentType: ContentType
 ): Promise<CachedAudio | null> {
   try {
+    console.log("START audio caching...")
     // Generate unique filename
     const fileName = `tts/${textHash}.mp3`
 
