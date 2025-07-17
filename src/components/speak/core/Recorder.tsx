@@ -155,6 +155,7 @@ export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
           setIsRecording(false)
         },
         (err) => {
+          console.error("Error stopping recognition:", err)
           setError("Error processing speech. Please try again.")
           setIsRecording(false)
         }

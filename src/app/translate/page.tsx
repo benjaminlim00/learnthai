@@ -2,11 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import {
-  ProtectedRoute,
-  LoadingSpinner,
-  AudioButton,
-} from "@/components/shared"
+import { ProtectedRoute, AudioButton } from "@/components/shared"
 import { TranslateResponse } from "@/lib/validation"
 import { TranslationHistory } from "@/components/translate/TranslationHistory"
 

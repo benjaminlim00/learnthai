@@ -6,7 +6,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { LoadingSpinner } from "@/components/shared"
 import { Trash2, AlertCircle } from "lucide-react"
 
 interface DeleteConfirmationModalProps {
