@@ -6,11 +6,7 @@ import {
   pronunciationFeedbackSchema,
   PronunciationFeedback,
 } from "@/lib/validation"
-import {
-  ContentType,
-  ErrorType,
-  PronunciationSession,
-} from "@/types/pronunciation"
+import { ContentType, PronunciationSession } from "@/types/pronunciation"
 import { CategorizedError } from "@/types/scoring"
 
 const openai = new OpenAI({
@@ -150,7 +146,7 @@ Please analyze the pronunciation accuracy with focus on Thai phonetic features.`
         user_id: user.id,
         content: targetThai,
         content_type: contentType as ContentType,
-        errors: enhancedFeedback.mistakes as ErrorType[],
+        errors: categorizedErrors.map((error) => error.type),
         score: score,
         created_at: new Date().toISOString(),
       }

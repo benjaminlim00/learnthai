@@ -106,7 +106,6 @@ BEGIN
     DROP FUNCTION IF EXISTS update_updated_at() CASCADE;
     DROP FUNCTION IF EXISTS get_or_create_user_profile(UUID) CASCADE;
     DROP FUNCTION IF EXISTS update_user_speaker_preference(UUID, TEXT) CASCADE;
-    DROP FUNCTION IF EXISTS get_user_daily_generation_count(UUID) CASCADE;
     DROP FUNCTION IF EXISTS get_user_pronunciation_sessions(UUID, INTEGER) CASCADE;
 EXCEPTION
     WHEN OTHERS THEN

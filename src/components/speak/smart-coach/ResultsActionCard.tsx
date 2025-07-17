@@ -119,11 +119,11 @@ const TrendIndicator = ({ weakness }: { weakness: Weakness }) => {
   return <span className="text-muted-foreground font-medium">New Area</span>
 }
 
-interface ResultsWeaknessCardProps {
+interface ResultsActionCardProps {
   weakness: Weakness
 }
 
-export function ResultsWeaknessCard({ weakness }: ResultsWeaknessCardProps) {
+export function ResultsActionCard({ weakness }: ResultsActionCardProps) {
   const style = getPriorityStyle(weakness.priority)
   const errorRate = getErrorRate(weakness)
 

@@ -12,7 +12,7 @@ export function ResultsGoodWork({ analysisData }: ResultsGoodWorkProps) {
   if (analysisData.weaknesses.length !== 0) return <></>
 
   return (
-    <CardContent className="space-y-6">
+    <CardContent className="p-6 py-4">
       {/* Success Message */}
       <section className="relative text-center py-8 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 dark:from-primary/10 dark:via-primary/20 dark:to-primary/10 rounded-lg border border-primary/20 overflow-hidden animate-fade-in">
         {/* Decorative elements */}

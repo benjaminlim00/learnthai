@@ -75,7 +75,6 @@ CREATE TABLE pronunciation_sessions (
     array_position(errors, 'overall_fluency') IS NOT NULL
   ),
   score INTEGER CHECK (score >= 0 AND score <= 100),
-  recommendation TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -191,11 +190,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION get_user_daily_generation_count(user_uuid UUID) RETURNS INTEGER AS $$
-BEGIN
-  RETURN (SELECT COUNT(*) FROM generation_logs WHERE user_id = user_uuid AND created_at >= CURRENT_DATE);
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Simple function to get pronunciation sessions for analysis
 CREATE OR REPLACE FUNCTION get_user_pronunciation_sessions(user_uuid UUID, days_back INTEGER DEFAULT 30)

@@ -12,7 +12,7 @@ export function ResultsInsights({ analysisData }: ResultsInsightsProps) {
   if (analysisData.learning_insights.length === 0) return <></>
 
   return (
-    <CardContent className="p-6">
+    <CardContent className="p-6 py-4">
       <div className="space-y-3">
         <CardTitle className="flex items-center gap-2 mb-2">
           {/* <Target className="w-5 h-5" /> */}

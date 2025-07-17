@@ -68,9 +68,10 @@ export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
 
   const startRecording = async () => {
     try {
-      // Auto-stop after 15 seconds
       setTimeout(() => {
-        stopRecording()
+        stopRecording(
+          `Recording time exceeded ${AUTO_STOP_RECORDING_TIME / 1000} seconds`
+        )
       }, AUTO_STOP_RECORDING_TIME)
 
       // Start timer
@@ -127,14 +128,14 @@ export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
     }
   }
 
-  const stopRecording = () => {
+  const stopRecording = (errorMessage?: string) => {
     if (recognizerRef.current) {
       recognizerRef.current.stopContinuousRecognitionAsync(
         () => {
           if (recognizedText) {
             onRecordingComplete(recognizedText)
           } else {
-            setError("No speech detected. Please try again.")
+            setError(errorMessage || "No speech detected. Please try again.")
           }
           setIsRecording(false)
         },
@@ -177,8 +178,7 @@ export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
           <section className="text-center">
             <MicOff className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground mb-4">
-              {error ||
-                "Microphone access is required for pronunciation practice"}
+              Microphone access is required for pronunciation practice
             </p>
             <Button onClick={() => window.location.reload()}>Try Again</Button>
           </section>
@@ -199,16 +199,15 @@ export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
                   {formatTime(recordingTime)}
                 </time>
               </header>
-              {recognizedText && (
-                <p className="text-sm font-medium border p-2 rounded-md bg-muted">
-                  {recognizedText}
-                </p>
-              )}
+              <p className="text-sm font-medium border p-2 rounded-md bg-muted">
+                {recognizedText || "<transcribed text will appear here>"}
+              </p>
+
               <p className="text-muted-foreground">
                 Recording... Speak the sentence clearly
               </p>
               <Button
-                onClick={stopRecording}
+                onClick={() => stopRecording()}
                 variant="destructive"
                 size="lg"
                 className="w-full"
@@ -235,7 +234,7 @@ export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
             </>
           )}
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <p className="text-red-700 text-sm">{error}</p>}
         </section>
       </CardContent>
     </Card>
