@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const speed = 0.8 // 20% slower for better pronunciation learning
+    const speed = 0.7 // 30% slower for better pronunciation learning
 
     // Only cache reference audio (words and sentences), not user transcriptions
     let cachedAudio = null

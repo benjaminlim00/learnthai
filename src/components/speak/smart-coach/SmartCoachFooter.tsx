@@ -13,7 +13,7 @@ export function SmartCoachFooter({ onShowExplainer }: SmartCoachFooterProps) {
     <Card className="bg-muted/30">
       <CardContent className="p-4">
         <aside className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Target className="w-4 h-4" />
+          <Target className="w-5 h-5 md:w-4 md:h-4 flex-shrink-0" />
           <span>
             Smart Coach analyzes your pronunciation patterns using AI and Thai
             linguistic rules.

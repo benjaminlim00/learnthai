@@ -36,7 +36,7 @@ export function ResultsGoodWork({ analysisData }: ResultsGoodWorkProps) {
           <p className="text-lg text-muted-foreground mb-3">
             No major pronunciation issues found
           </p>
-          <p className="text-sm text-muted-foreground/80">
+          <p className="text-sm text-muted-foreground/80 max-w-md mx-auto">
             Keep up the great work—or challenge yourself with more advanced
             vocabulary!
           </p>

@@ -32,18 +32,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Note: User's recorded audio is processed but NEVER cached or stored permanently
-    // Only reference pronunciations (correct audio) are cached via the TTS API
-    const formData = await request.formData()
-    const audioFile = formData.get("audio") as File
-    const targetThai = formData.get("targetThai") as string
-    const targetRomanization = formData.get("targetRomanization") as string
-    const targetTranslation = formData.get("targetTranslation") as string
-    const contentType = formData.get("contentType") as string
+    const data = await request.json()
+    const {
+      recognizedText,
+      targetThai,
+      targetRomanization,
+      targetTranslation,
+      contentType,
+    } = data
 
-    if (!audioFile) {
+    if (!recognizedText) {
       return NextResponse.json(
-        { error: "Audio file is required" },
+        { error: "Recognized text is required" },
         { status: 400 }
       )
     }
@@ -54,15 +54,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-
-    // Convert audio file to transcription using Whisper
-    const transcriptionResponse = await openai.audio.transcriptions.create({
-      file: audioFile,
-      model: "gpt-4o-mini-transcribe",
-      language: "th", // Thai language
-    })
-
-    const transcribedText = transcriptionResponse.text
 
     // Generate pronunciation feedback using GPT-4 with enhanced Thai-specific prompting
     const feedbackResponse = await openai.chat.completions.create({
@@ -104,7 +95,7 @@ Be encouraging but precise. If pronunciation is excellent, return empty mistakes
         },
         {
           role: "user",
-          content: `User said: "${transcribedText}"
+          content: `User said: "${recognizedText}"
 Target: "${targetThai}" (${targetRomanization}) - "${targetTranslation}"
 Practice mode: ${contentType || "sentence"}
 

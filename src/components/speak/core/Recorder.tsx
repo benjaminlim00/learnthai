@@ -4,22 +4,27 @@ import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Mic, MicOff, Square } from "lucide-react"
+import * as speechsdk from "microsoft-cognitiveservices-speech-sdk"
+import {
+  ResultReason,
+  SpeechRecognitionEventArgs,
+} from "microsoft-cognitiveservices-speech-sdk"
 
 interface RecorderProps {
-  onRecordingComplete: (audioBlob: Blob) => void
+  onRecordingComplete: (text: string) => void
   isProcessing: boolean
 }
 
-// TODO: we need to cap the max recording time to 15seconds
+const AUTO_STOP_RECORDING_TIME = 15000
+
 export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
   const [hasPermission, setHasPermission] = useState<boolean | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [recognizedText, setRecognizedText] = useState<string>("")
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const streamRef = useRef<MediaStream | null>(null)
-  const chunksRef = useRef<Blob[]>([])
+  const recognizerRef = useRef<speechsdk.SpeechRecognizer | null>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
@@ -39,55 +44,121 @@ export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
     }
 
     checkPermissions()
+
+    // Cleanup on unmount
+    return () => {
+      stopRecording()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const getTokenOrRefresh = async () => {
+    try {
+      const response = await fetch("/api/azure-speech-token")
+      if (!response.ok) {
+        throw new Error(`Token request failed with status ${response.status}`)
+      }
+      const data = await response.json()
+      return { authToken: data.token, region: data.region }
+    } catch (err) {
+      console.error("Error fetching token:", err)
+      throw new Error("Failed to get speech token")
+    }
+  }
+
+  const processRecognized = async (event: SpeechRecognitionEventArgs) => {
+    const result = event.result
+    if (result.reason === ResultReason.RecognizedSpeech) {
+      const text = (result as unknown as { privText: string }).privText
+      setRecognizedText(text)
+      // setRecognizedText("");
+      // await slowType(text);
+    }
+  }
+
+  const processRecognizing = async (event: SpeechRecognitionEventArgs) => {
+    const result = event.result
+    if (result.reason === ResultReason.RecognizingSpeech) {
+      const text = (result as unknown as { privText: string }).privText
+      setRecognizedText(text)
+    }
+  }
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      streamRef.current = stream
-
-      const mediaRecorder = new MediaRecorder(stream)
-      mediaRecorderRef.current = mediaRecorder
-      chunksRef.current = []
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data)
-        }
-      }
-
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(chunksRef.current, { type: "audio/webm" })
-        onRecordingComplete(audioBlob)
-
-        // Clean up
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach((track) => track.stop())
-          streamRef.current = null
-        }
-      }
-
-      mediaRecorder.start()
       setIsRecording(true)
       setRecordingTime(0)
       setError(null)
+      setRecognizedText("")
+
+      const tokenObj = await getTokenOrRefresh()
+      const speechConfig = speechsdk.SpeechConfig.fromAuthorizationToken(
+        tokenObj.authToken,
+        tokenObj.region
+      )
+      speechConfig.speechRecognitionLanguage = "th-TH"
+      const audioConfig = speechsdk.AudioConfig.fromDefaultMicrophoneInput()
+      const recognizer = new speechsdk.SpeechRecognizer(
+        speechConfig,
+        audioConfig
+      )
+      recognizerRef.current = recognizer
+
+      recognizer.recognized = (s, e) => processRecognized(e)
+      recognizer.recognizing = (s, e) => processRecognizing(e)
+      recognizer.canceled = (s, e) => {
+        console.log(`Recognition canceled: ${e.reason}`)
+        if (e.reason === speechsdk.CancellationReason.Error) {
+          setError(`Recognition error: ${e.errorDetails}`)
+        }
+      }
+
+      recognizer.startContinuousRecognitionAsync(
+        () => {},
+        (err) => {
+          console.error("Error starting recognition:", err)
+          setError("Failed to start speech recognition")
+          setIsRecording(false)
+        }
+      )
+
+      // Auto-stop after 15 seconds
+      setTimeout(() => {
+        if (isRecording) {
+          stopRecording()
+        }
+      }, AUTO_STOP_RECORDING_TIME)
 
       // Start timer
       intervalRef.current = setInterval(() => {
         setRecordingTime((prev) => prev + 1)
       }, 1000)
     } catch (err) {
-      setError(
-        "Failed to start recording. Please check microphone permissions."
-      )
-      console.error("Recording error:", err)
+      setIsRecording(false)
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to start recording. Please check microphone permissions."
+      setError(errorMessage)
     }
   }
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop()
-      setIsRecording(false)
+    if (recognizerRef.current) {
+      recognizerRef.current.stopContinuousRecognitionAsync(
+        () => {
+          if (recognizedText) {
+            onRecordingComplete(recognizedText)
+          } else {
+            setError("No speech detected. Please try again.")
+          }
+          setIsRecording(false)
+        },
+        (err) => {
+          setError("Error processing speech. Please try again.")
+          setIsRecording(false)
+        }
+      )
 
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
@@ -143,6 +214,11 @@ export function Recorder({ onRecordingComplete, isProcessing }: RecorderProps) {
                   {formatTime(recordingTime)}
                 </time>
               </header>
+              {recognizedText && (
+                <p className="text-sm font-medium border p-2 rounded-md bg-muted">
+                  {recognizedText}
+                </p>
+              )}
               <p className="text-muted-foreground">
                 Recording... Speak the sentence clearly
               </p>

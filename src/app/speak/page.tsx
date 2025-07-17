@@ -135,24 +135,28 @@ export default function SpeakPage() {
   //   setFocusTarget(null)
   // }
 
-  const handleRecordingComplete = async (audioBlob: Blob) => {
+  const handleRecordingComplete = async (recognizedText: string) => {
     setIsProcessing(true)
     setError(null)
     setFeedback(null)
     setCurrentStep("feedback")
 
     try {
-      // Create FormData to send audio and target sentence
-      const formData = new FormData()
-      formData.append("audio", audioBlob, "recording.webm")
-      formData.append("targetThai", targetSentence.thai)
-      formData.append("targetRomanization", targetSentence.romanization)
-      formData.append("targetTranslation", targetSentence.translation)
-      formData.append("contentType", contentType)
+      // Create data to send for analysis
+      const analysisData = {
+        recognizedText,
+        targetThai: targetSentence.thai,
+        targetRomanization: targetSentence.romanization,
+        targetTranslation: targetSentence.translation,
+        contentType,
+      }
 
       const response = await fetch("/api/speak-feedback", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(analysisData),
       })
 
       if (!response.ok) {
