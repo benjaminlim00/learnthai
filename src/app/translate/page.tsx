@@ -180,14 +180,7 @@ export default function TranslatePage() {
               </div>
 
               <Button onClick={translate} disabled={loading} className="w-full">
-                {loading ? (
-                  <>
-                    <LoadingSpinner className="mr-2 h-4 w-4" />
-                    Translating...
-                  </>
-                ) : (
-                  "Translate"
-                )}
+                {loading ? <>Translating...</> : "Translate"}
               </Button>
 
               {error && (

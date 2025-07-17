@@ -86,14 +86,7 @@ export function DeleteConfirmationModal({
               className="flex-1"
               disabled={isDeleting}
             >
-              {isDeleting ? (
-                <div className="flex items-center gap-2">
-                  <LoadingSpinner size="sm" variant="current" />
-                  Deleting...
-                </div>
-              ) : (
-                "Delete Word"
-              )}
+              {isDeleting ? <>Deleting...</> : "Delete Word"}
             </Button>
           </div>
         </div>

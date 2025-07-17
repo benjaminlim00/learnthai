@@ -411,14 +411,7 @@ export default function TopicPage() {
                   className="w-full"
                 >
                   {loading ? (
-                    <>
-                      <LoadingSpinner
-                        size="sm"
-                        variant="current"
-                        className="mr-2"
-                      />
-                      Generating...
-                    </>
+                    <>Generating...</>
                   ) : mode === "topic" ? (
                     "Generate Thai Vocabulary"
                   ) : (
@@ -479,14 +472,7 @@ export default function TopicPage() {
                             className="gap-2"
                           >
                             {isSaving ? (
-                              <>
-                                <LoadingSpinner
-                                  size="sm"
-                                  variant="current"
-                                  className="w-3 h-3"
-                                />
-                                {isSaved ? "Unsaving..." : "Saving..."}
-                              </>
+                              <>{isSaved ? "Unsaving..." : "Saving..."}</>
                             ) : isSaved ? (
                               <>
                                 <Check className="h-4 w-4" />
