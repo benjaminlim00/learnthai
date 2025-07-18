@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Languages, History } from "lucide-react"
+import { Languages, History, X, Copy } from "lucide-react"
 
 interface TranslationResult extends TranslateResponse {
   id: string
@@ -24,7 +24,7 @@ const STORAGE_KEY = "learnthai-translation-history"
 const MAX_HISTORY = 10
 
 export default function TranslatePage() {
-  const [inputText, setInputText] = useState(sampleText)
+  const [inputText, setInputText] = useState("")
   const [translationResult, setTranslationResult] = useState<Omit<
     TranslationResult,
     "id" | "timestamp"
@@ -85,6 +85,16 @@ export default function TranslatePage() {
     setShowHistory(false)
   }
 
+  const copyToClipboard = async () => {
+    if (!translationResult?.translatedText) return
+
+    try {
+      await navigator.clipboard.writeText(translationResult.translatedText)
+    } catch (err) {
+      console.error("Failed to copy text: ", err)
+    }
+  }
+
   const translate = async () => {
     if (!inputText.trim()) {
       setError("Please enter some text to translate")
@@ -128,7 +138,8 @@ export default function TranslatePage() {
 
   return (
     <ProtectedRoute>
-      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Languages className="h-8 w-8 text-primary" />
@@ -143,6 +154,7 @@ export default function TranslatePage() {
         </div>
 
         <Card className="mb-6">
+          {/* Header Bar */}
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -162,111 +174,165 @@ export default function TranslatePage() {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+
+          <CardContent className="p-6 pt-0">
+            {/* Translation Areas */}
+            <div
+              className={`grid gap-4 ${
+                translationResult ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
+              }`}
+            >
+              {/* Input Area */}
               <div className="space-y-2">
-                <Label htmlFor="input-text">Enter Text</Label>
-                <Textarea
-                  id="input-text"
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder="Enter text to translate..."
-                  className="min-h-[100px]"
-                />
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Enter text
+                  </Label>
+                </div>
+                <div className="relative">
+                  <Textarea
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    placeholder={sampleText}
+                    className="min-h-[120px] resize-none border-2 focus:border-primary pr-12 scrollbar-hide"
+                  />
+                  {inputText && (
+                    <Button
+                      onClick={() => setInputText("")}
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-2 right-3 h-6 w-6 p-0 hover:bg-muted z-10"
+                      title="Clear text"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
               </div>
 
-              <Button onClick={translate} disabled={loading} className="w-full">
-                {loading ? <>Translating...</> : "Translate"}
-              </Button>
-
-              {error && (
-                <div className="text-destructive text-sm bg-destructive/10 p-3 rounded-md">
-                  {error}
-                </div>
-              )}
-
+              {/* Output Area - Only show when there's a translation */}
               {translationResult && (
-                <div className="space-y-6 pt-4">
-                  {/* Translation Result */}
-                  <div className="space-y-2">
-                    <h3 className="font-semibold">Translation</h3>
-                    <div className="bg-muted p-3 rounded-md">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <p className="text-foreground">
-                            {translationResult.translatedText}
-                          </p>
-                          {translationResult.romanization && (
-                            <p className="text-muted-foreground text-sm mt-1">
-                              {translationResult.romanization}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Translation
+                    </Label>
+                    <Button
+                      onClick={copyToClipboard}
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 hover:bg-muted"
+                      title="Copy translation"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="relative">
+                    <div className="min-h-[120px] p-3 bg-muted/50 border-2 rounded-md">
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="text-foreground text-base leading-relaxed">
+                              {translationResult.translatedText}
                             </p>
-                          )}
-                        </div>
-                        <AudioButton
-                          text={translationResult.translatedText}
-                          contentType={
-                            translationResult.translatedText.includes(" ")
-                              ? "sentence"
-                              : "word"
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Usage Examples */}
-                  <div className="space-y-2">
-                    <h3 className="font-semibold">Usage</h3>
-                    <ul className="list-disc list-inside space-y-1">
-                      {translationResult.usage.map((usage, index) => (
-                        <li key={index} className="text-muted-foreground">
-                          {usage}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Example Sentences */}
-                  <div className="space-y-2">
-                    <h3 className="font-semibold">Example Sentences</h3>
-                    <div className="space-y-4">
-                      {translationResult.exampleSentences.map(
-                        (example, index) => (
-                          <div
-                            key={index}
-                            className="bg-muted p-3 rounded-md space-y-2"
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1">
-                                <p className="text-foreground">
-                                  {example.text}
-                                </p>
-                                {example.romanization && (
-                                  <p className="text-muted-foreground text-sm">
-                                    {example.romanization}
-                                  </p>
-                                )}
-                              </div>
-                              <AudioButton
-                                text={example.text}
-                                contentType="sentence"
-                              />
-                            </div>
-                            <div className="border-t border-border pt-2">
-                              <p className="text-muted-foreground flex-1">
-                                {example.translation}
+                            {translationResult.romanization && (
+                              <p className="text-muted-foreground text-sm mt-1">
+                                {translationResult.romanization}
                               </p>
-                            </div>
+                            )}
                           </div>
-                        )
-                      )}
+                          <AudioButton
+                            text={translationResult.translatedText}
+                            contentType={
+                              translationResult.translatedText.includes(" ")
+                                ? "sentence"
+                                : "word"
+                            }
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
             </div>
+
+            {/* Translate Button */}
+            <Button
+              onClick={translate}
+              disabled={loading}
+              className="w-full mt-4"
+            >
+              {loading ? <>Translating...</> : "Translate"}
+            </Button>
+            {/* Error Display */}
+            {error && (
+              <div className="mt-4 text-destructive text-sm bg-destructive/10 p-3 rounded-md">
+                {error}
+              </div>
+            )}
           </CardContent>
         </Card>
+
+        {/* Additional Information */}
+        {translationResult && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* Usage Examples */}
+            <Card>
+              <CardContent>
+                <h3 className="font-semibold mb-3">Usage</h3>
+                <ul className="space-y-2">
+                  {translationResult.usage.map((usage, index) => (
+                    <li
+                      key={index}
+                      className="text-sm text-muted-foreground flex items-start"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-muted-foreground/40 mt-2 mr-2 flex-shrink-0"></span>
+                      {usage}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* Example Sentences */}
+            <Card>
+              <CardContent>
+                <h3 className="font-semibold mb-3">Example Sentences</h3>
+                <div className="space-y-3">
+                  {translationResult.exampleSentences
+                    .slice(0, 2)
+                    .map((example, index) => (
+                      <div
+                        key={index}
+                        className="space-y-2 p-3 bg-muted/50 rounded-md"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="space-y-1">
+                            <p className="text-md font-medium">
+                              {example.text}
+                            </p>
+                            {example.romanization && (
+                              <p className="text-xs text-muted-foreground">
+                                {example.romanization}
+                              </p>
+                            )}
+                          </div>
+                          <AudioButton
+                            text={example.text}
+                            contentType="sentence"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground border-t border-border pt-1">
+                          {example.translation}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {showHistory && (
           <TranslationHistory
