@@ -570,7 +570,7 @@ export default function SpeakPage() {
               <CardContent>
                 {isProcessing ? (
                   <div className="text-center py-8 space-y-4">
-                    <LoadingSpinner size="lg" />
+                    <LoadingSpinner />
                     <div className="space-y-2">
                       <p className="text-lg font-medium">
                         Analyzing your pronunciation...

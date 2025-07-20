@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { LoadingSpinner } from "../shared"
 
 const loadingSteps = [
   "🧠 Analyzing topic...",
@@ -37,7 +38,7 @@ export function VocabularyLoading() {
         <div className="text-center space-y-6">
           {/* Main loading icon */}
           <div className="relative">
-            <div className="w-16 h-16 mx-auto rounded-full border-4 border-primary/20 border-t-primary animate-spin"></div>
+            <LoadingSpinner size="xl" />
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-2xl animate-pulse">🇹🇭</span>
             </div>
