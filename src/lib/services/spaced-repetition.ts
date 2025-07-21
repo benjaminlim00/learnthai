@@ -105,10 +105,7 @@ export function calculateEnhancedPriorityScore(
   const currentTime = new Date()
   const nextReview = new Date(word.next_review)
   const createdAt = new Date(word.created_at)
-  //TODO: lastReview not implemented
-  const lastReviewed = word.last_reviewed
-    ? new Date(word.last_reviewed)
-    : createdAt
+  const lastReviewed = word.updated_at ? new Date(word.updated_at) : createdAt
 
   const daysSinceCreated = Math.max(
     1,
@@ -198,7 +195,10 @@ export function calculateEnhancedPriorityScore(
   const totalScore = Object.values(breakdown).reduce((sum, x) => sum + x, 0)
   const finalScore = Math.round(Math.min(100, totalScore))
 
-  //TODO: Integrate userStats (avg speed, retention) to fine-tune scoring
+  // TODO: HIGH PRIORITY - Integrate userStats for optimal learning efficiency
+  // Priority: High - Missing user performance data reduces SM-2 effectiveness
+  // Should collect: avg response time, retention rates, error patterns
+  // Fix: Add user_statistics table and integrate with priority scoring
 
   return {
     score: finalScore,

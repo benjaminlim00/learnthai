@@ -23,7 +23,10 @@ try {
   redis = null
 }
 
-// Create mock rate limiter for development/fallback
+// TODO: LOW PRIORITY - Implement memory-based fallback rate limiter
+// Priority: Low - Mock limiter provides no protection if Redis unavailable
+// Current mock always allows requests through
+// Fix: Implement in-memory rate limiting with Map-based storage
 const createMockRateLimiter = () => ({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   limit: async (_identifier: string) => ({
@@ -113,11 +116,11 @@ const getClientIdentifier = (request: NextRequest): string => {
 
 // Get user identifier for rate limiting
 const getUserIdentifier = (request: NextRequest): string => {
-  // TODO: This should be called after authentication middleware
-  // Priority: Medium - Need proper user identification for rate limiting
-  // Current implementation uses IP as fallback which is not ideal
+  // TODO: CRITICAL - Fix rate limiting security gap
+  // Priority: High - Need proper user identification for rate limiting
+  // Current implementation uses IP as fallback which allows bypassing limits
   // Should integrate with Supabase auth to get actual user ID
-  // For now, use IP as fallback
+  // Fix: const authResult = await authenticateRequest(request); return authResult.user?.id || getClientIdentifier(request)
   return getClientIdentifier(request)
 }
 
@@ -126,10 +129,9 @@ export const withRateLimitAndAuth = (
   handler: (request: NextRequest) => Promise<NextResponse>,
   limiter: Ratelimit | ReturnType<typeof createMockRateLimiter>
 ) => {
-  // TODO: Implement auth middleware
-  // Priority: High - Need to implement auth middleware
-  // Current implementation uses IP as fallback which is not ideal
-  // Should integrate with Supabase auth to get actual user ID
-  // For now, use IP as fallback
+  // TODO: CRITICAL - Implement proper auth middleware integration
+  // Priority: High - Security vulnerability - users can bypass rate limits
+  // Current implementation uses IP as fallback which is exploitable
+  // Fix: Make getUserIdentifier async and integrate with authenticateRequest()
   return withRateLimit(handler, limiter, getUserIdentifier)
 }

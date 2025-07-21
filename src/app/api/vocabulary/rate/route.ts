@@ -14,7 +14,9 @@ import { SpacedRepetitionRating } from "@/types/database"
 import { User } from "@supabase/supabase-js"
 
 // POST - Rate a vocabulary word and update SM-2 values
-//TODO: we need to rate limit
+// TODO: HIGH PRIORITY - Apply rate limiting to prevent abuse
+// Priority: High - Vocabulary rating system can be exploited without limits
+// Fix: Apply withRateLimitAndAuth wrapper like other API endpoints
 
 export const POST = withAuthAndValidation(
   async (
@@ -53,7 +55,6 @@ export const POST = withAuthAndValidation(
           ease_factor: sm2Result.easeFactor,
           repetitions: sm2Result.repetitions,
           next_review: sm2Result.nextReview.toISOString(),
-          // Update status based on rating
           status: validatedData.rating >= 3 ? "learning" : "new",
           updated_at: new Date().toISOString(),
         })

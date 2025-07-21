@@ -53,14 +53,20 @@ export class ThaiScoringService {
       errorBreakdown[error.type] = (errorBreakdown[error.type] || 0) + deduction
     })
 
-    //TODO: add confidence system in future
+    // TODO: HIGH PRIORITY - Add confidence system for better scoring accuracy
+    // Priority: High - Missing confidence weighting reduces pronunciation scoring accuracy
+    // Should factor in: audio quality, speech clarity, model confidence scores
+    // Fix: Implement confidence-based scoring adjustment system
     const adjustedDeduction = totalDeduction
 
     // Calculate final score with minimum threshold
     const rawScore = Math.max(0, 100 - adjustedDeduction)
     const finalScore = Math.round(rawScore)
 
-    //TODO: use this information
+    // TODO: MEDIUM PRIORITY - Expose scoring breakdown for user feedback
+    // Priority: Medium - Missing detailed feedback limits user improvement
+    // Should return: base_score, difficulty_multiplier, error_breakdown, total_errors
+    // Fix: Add breakdown to return type and expose in API responses
     // breakdown: {
     //     base_score: rawScore,
     //     difficulty_multiplier: difficultyMultiplier,

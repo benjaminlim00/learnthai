@@ -22,7 +22,6 @@ export interface VocabularyWord {
   next_review: string // ISO timestamp for next review
   created_at: string
   updated_at: string
-  last_reviewed: string
 }
 
 export interface UserProfile {

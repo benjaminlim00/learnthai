@@ -118,6 +118,10 @@ export async function getAudioFromStorage(
 }
 
 /**
+ * TODO: MEDIUM PRIORITY - Implement audio cache cleanup
+ * Priority: Medium - No automated cleanup of old cached audio files
+ * Storage will grow indefinitely without maintenance
+ * Fix: Uncomment and schedule this function to run periodically
  * Clean up old cached audio files (optional maintenance function)
  * Remove files older than specified days
  */
