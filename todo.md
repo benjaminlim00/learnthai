@@ -1,0 +1,5 @@
+- use the user's gender inside the prompt for translate, so we get the right gendered translation
+- Fix ai generate icon alignment
+- Add paste button to translate input like in brave
+- Add toast message for when message is copied
+- Improve UI for history, it should not pop up below the user viewport
