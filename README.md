@@ -1,5 +1,7 @@
 # LearnThaiAI - AI-Powered Thai Language Learning Platform
 
+🌐 **Live Site**: https://learnthai-ai.vercel.app/
+
 An intelligent Thai language learning web application with AI-powered vocabulary generation, advanced pronunciation coaching, and scientifically-proven spaced repetition learning.
 
 ## 🚀 Quick Setup
