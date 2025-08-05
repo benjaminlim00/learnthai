@@ -138,20 +138,17 @@ export default function TranslatePage() {
 
   return (
     <ProtectedRoute>
-      <div className="mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-2">
+      <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <header className="text-center mb-8">
+          <h1 className="flex items-center justify-center gap-2 mb-2 text-3xl font-bold text-foreground">
             <Languages className="h-8 w-8 text-primary" />
-            <h2 className="text-3xl font-bold text-foreground">
-              Thai Translator
-            </h2>
-          </div>
+            Thai Translator
+          </h1>
           <p className="text-muted-foreground">
             Translate between Thai and English with examples and usage
             information
           </p>
-        </div>
+        </header>
 
         <Card className="mb-6">
           {/* Header Bar */}
@@ -343,7 +340,7 @@ export default function TranslatePage() {
             onLoadFromHistory={loadFromHistory}
           />
         )}
-      </div>
+      </main>
     </ProtectedRoute>
   )
 }

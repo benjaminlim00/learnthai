@@ -269,20 +269,18 @@ export default function GeneratePage() {
 
   return (
     <ProtectedRoute>
-      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-2">
+      <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <header className="text-center mb-8">
+          <h1 className="flex items-center justify-center gap-2 mb-2 text-3xl font-bold text-foreground">
             <BookOpen className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold text-foreground ">
-              Generate Thai Vocabulary
-            </h1>
-          </div>
+            Generate Thai Vocabulary
+          </h1>
           <p className="text-muted-foreground">
             Generate vocabulary by topic or convert specific words into complete
             Thai vocabulary entries with translations, romanization, and example
             sentences.
           </p>
-        </div>
+        </header>
 
         {/* Usage Stats */}
         <Card className="mb-6">
@@ -515,7 +513,7 @@ export default function GeneratePage() {
             </CardContent>
           </Card>
         )}
-      </div>
+      </main>
     </ProtectedRoute>
   )
 }

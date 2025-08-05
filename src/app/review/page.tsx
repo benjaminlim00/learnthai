@@ -355,14 +355,15 @@ export default function ReviewPage() {
 
   return (
     <ProtectedRoute>
-      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8">
+      <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <header className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">
             <RotateCcw className="h-8 w-8 text-primary" />
-            <h2 className="text-3xl font-bold text-foreground">
+            <h1 className="text-3xl font-bold text-foreground">
               Vocabulary Review
-            </h2>
+            </h1>
           </div>
+
           <p className="text-muted-foreground">
             Spaced repetition learning with the SM-2 algorithm
           </p>
@@ -372,7 +373,7 @@ export default function ReviewPage() {
             onSwitchToReview={switchToReviewMode}
             onSwitchToBrowse={switchToBrowseMode}
           />
-        </div>
+        </header>
 
         <ErrorDisplay error={error} />
 
@@ -430,7 +431,7 @@ export default function ReviewPage() {
             onReviewAllLearned={reviewAllLearned}
           />
         )}
-      </div>
+      </main>
 
       <DeleteConfirmationModal
         open={deleteModalOpen}
