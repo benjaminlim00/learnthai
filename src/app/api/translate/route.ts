@@ -14,6 +14,7 @@ import {
 } from "@/lib/validation"
 import { User } from "@supabase/supabase-js"
 import { env } from "@/lib/env"
+import { createServerSupabaseClient } from "@/lib/supabase"
 
 const openai = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
@@ -33,7 +34,22 @@ const translateHandler = withAuthAndValidation(
       const { text } = validatedData
       const detectedLanguage = detectLanguage(text)
 
+      // Fetch user's speaker preference for gendered translations
+      const supabase = await createServerSupabaseClient(request)
+      const { data: profileData } = await supabase.rpc(
+        "get_or_create_user_profile",
+        {
+          user_uuid: user.id,
+        }
+      )
+
+      const speakerPreference = profileData?.[0]?.speaker_preference || "female"
+      const genderContext =
+        speakerPreference === "male" ? "masculine" : "feminine"
+
       const systemPrompt = `You are a professional translator specializing in Thai and English languages. When translating, provide comprehensive information including usage examples and example sentences.
+
+The user prefers ${genderContext} forms when gendered language is appropriate. For languages with grammatical gender or gendered speech patterns (like Thai polite particles), use the ${genderContext} form in translations and examples.
 
 Respond in the following JSON format:
 {
@@ -51,7 +67,7 @@ Respond in the following JSON format:
 
 For Thai text, always provide romanization using the Royal Thai General System of Transcription.
 Provide 2-3 example sentences that show different contexts or usages. The example sentence should not be overly similar to the text provided by the user. If the input is a long sentence, summarize its meaning and include that summary inside the 'usage' field.
-Keep example sentences natural and practical.`
+Keep example sentences natural and practical, using ${genderContext} forms when appropriate.`
 
       const userPrompt = `Translate and provide detailed information for this ${detectedLanguage} text:
 
